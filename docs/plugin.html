@@ -276,7 +276,24 @@
     <p style="font-size:14px;color:var(--muted);max-width:70ch"><code>gf-router</code>(불명확한 요청 분류)와 <code>gf-expand</code>(옵션·트레이드오프 제시)가 흐름을 보조하며, 에이전트 스폰 시 <b>세션 모델을 상속</b>해 일관성을 유지합니다.</p>
 
     <h3>에이전트 스폰 (Agent Spawning)</h3>
-    <p style="font-size:14px;color:var(--muted);max-width:72ch;margin-bottom:20px">오케스트레이터는 RTL을 직접 짜지 않고 <code>Task</code> 툴로 전문 서브에이전트를 <b>실행(spawn)</b>합니다. 각 에이전트는 독립 컨텍스트에서 돌고 구조화된 결과를 반환합니다.</p>
+    <p style="font-size:14px;color:var(--muted);max-width:72ch;margin-bottom:16px">오케스트레이터는 RTL을 직접 짜지 않고 <code>Task</code> 툴로 전문 서브에이전트를 <b>실행(spawn)</b>합니다. 각 에이전트는 독립 컨텍스트에서 돌고 구조화된 결과를 반환합니다.</p>
+
+    <div style="border:1px solid var(--line);border-left:3px solid var(--copper);border-radius:11px;background:var(--surface-2);padding:16px 18px;margin-bottom:20px">
+      <p style="font-family:var(--disp);font-weight:700;font-size:15px;margin:0 0 8px">"Task 툴로 스폰된다"는?</p>
+      <p style="font-size:13.5px;color:var(--muted);margin:0 0 12px;max-width:74ch"><code>Task</code>는 Claude Code(및 Agent SDK)가 제공하는 <b>서브에이전트 실행 도구</b>. 호출하면 지정한 종류(<code>subagent_type</code>)의 에이전트 인스턴스가 <b>새로 만들어져(spawn)</b> 작업을 하고 결과만 돌려줍니다. OS의 부모→자식 프로세스 생성에 빗댄 표현입니다.</p>
+      <div class="tw"><table style="min-width:420px">
+        <thead><tr><th>특성</th><th>의미</th></tr></thead>
+        <tbody>
+          <tr><td class="name">독립 컨텍스트</td><td class="mut">부모 대화 히스토리를 물려받지 않음 → 자족적 프롬프트 필요</td></tr>
+          <tr><td class="name">자체 도구 루프</td><td class="mut">스스로 Read/Write/Bash/검색을 여러 턴 반복</td></tr>
+          <tr><td class="name">결과만 반환</td><td class="mut">내부 과정은 부모에 노출 안 됨, 최종 요약 하나만</td></tr>
+          <tr><td class="name">모델 상속</td><td class="mut">부모 세션과 동일 모델로 실행</td></tr>
+          <tr><td class="name">병렬 가능</td><td class="mut">한 메시지에서 여러 Task 호출 시 동시 실행</td></tr>
+        </tbody>
+      </table></div>
+      <p style="font-size:13px;color:var(--muted);margin:12px 0 0;max-width:74ch"><b style="color:var(--ink)">이점</b> — 컨텍스트 격리(시행착오가 부모를 오염 안 함) · 병렬성(독립 모듈 동시 생성) · 역할 분리(각자 전문 시스템 프롬프트·도구만 사용).</p>
+    </div>
+
     <div class="pipe">
       <div class="pstep"><div class="mark">①</div><div class="pbody"><p class="pt">기본 패턴 — Task 툴</p><p class="pd"><code>subagent_type: "gateflow:sv-codegen"</code> + <b>자족적 프롬프트</b>(스펙·인터페이스·제약·출력 경로). 서브에이전트는 부모 맥락을 자동으로 갖지 못하므로 모두 명시해야 한다.</p></div></div>
       <div class="pstep"><div class="mark">②</div><div class="pbody"><p class="pt">세션 모델 상속</p><p class="pd">스폰된 에이전트는 부모와 <b>동일한 모델</b>로 실행돼 품질·일관성을 맞춘다. <code>gf-lint</code>/<code>gf-sim</code> 같은 순수 툴 실행은 모델 불필요.</p></div></div>
