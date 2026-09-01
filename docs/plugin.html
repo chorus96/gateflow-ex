@@ -421,22 +421,67 @@
       <h2>IP 블록 라이브러리 <span style="color:var(--faint);font-family:var(--mono);font-size:16px">/ 8</span></h2>
       <p class="sec-sub">각 블록은 <b>RTL + 테스트벤치 + formal 속성 + 문서 + 메타데이터</b>가 한 세트인 검증된 드롭인 컴포넌트입니다.</p>
     </div>
-    <div class="cards">
-      <div class="card"><p class="t">fifo_sync</p><p>동기 FIFO (WIDTH/DEPTH 파라미터화)</p></div>
-      <div class="card"><p class="t">fifo_async</p><p>비동기(2클럭) FIFO</p></div>
-      <div class="card"><p class="t">cdc_2ff</p><p>2단 플립플롭 동기화기 (CDC)</p></div>
-      <div class="card"><p class="t">cdc_handshake</p><p>핸드셰이크 기반 CDC</p></div>
-      <div class="card"><p class="t">debouncer</p><p>버튼 디바운서</p></div>
-      <div class="card"><p class="t">spi_master</p><p>SPI 마스터</p></div>
-      <div class="card"><p class="t">uart</p><p>UART (TX/RX)</p></div>
-      <div class="card"><p class="t">axi4lite_slave</p><p>AXI4-Lite 슬레이브</p></div>
+    <h3>블록 해부 — 한 블록 = 6개 파일</h3>
+    <pre><code>ip/&lt;block&gt;/
+├── block.yaml              <span class="cm"># 메타데이터 (파라미터·포트·formal 증명·의존성)</span>
+├── rtl/&lt;block&gt;.sv          <span class="cm"># 합성 가능한 RTL 소스</span>
+├── tb/tb_&lt;block&gt;.sv        <span class="cm"># 자가검증 테스트벤치</span>
+├── formal/&lt;block&gt;_props.sv <span class="cm"># SVA 속성 (assert property)</span>
+├── formal/&lt;block&gt;.sby      <span class="cm"># SymbiYosys 증명 설정</span>
+└── README.md               <span class="cm"># 인스턴스화 예시 + 검증 명령</span></code></pre>
+
+    <h3>8개 블록 상세</h3>
+    <div class="tw"><table>
+      <thead><tr><th>블록</th><th>설명</th><th>핵심 파라미터</th><th>Formal 속성</th></tr></thead>
+      <tbody>
+        <tr><td class="name">fifo_sync</td><td>동기 FIFO, full/empty 플래그</td><td class="mut">WIDTH=8 · DEPTH=16</td><td class="mut">오버플로·언더플로 없음, 포인터 범위</td></tr>
+        <tr><td class="name">fifo_async</td><td>비동기(2클럭) FIFO, <b>Gray 코드 포인터</b> CDC</td><td class="mut">WIDTH=8 · DEPTH=8</td><td class="mut">full 시 쓰기 없음</td></tr>
+        <tr><td class="name">cdc_2ff</td><td>단일 비트 2단 FF 동기화기</td><td class="mut">STAGES=2</td><td class="mut">props 포함</td></tr>
+        <tr><td class="name">cdc_handshake</td><td>멀티비트 req/ack 핸드셰이크 CDC</td><td class="mut">WIDTH=8</td><td class="mut">전송 중 back-pressure</td></tr>
+        <tr><td class="name">debouncer</td><td>버튼 디바운서 + 엣지 검출(rise/fall)</td><td class="mut">CLK_FREQ · DEBOUNCE_MS=20</td><td class="mut">props 포함</td></tr>
+        <tr><td class="name">spi_master</td><td>SPI 마스터, <b>4가지 CPOL/CPHA 모드 전부</b></td><td class="mut">CLK_DIV=4 · DATA_WIDTH=8</td><td class="mut">busy일 때 CS_N low</td></tr>
+        <tr><td class="name">uart</td><td>UART TX+RX, 설정 가능 보드레이트(8N1)</td><td class="mut">CLK_FREQ · BAUD_RATE=115200</td><td class="mut">idle 시 TX high, valid 후 ready 해제</td></tr>
+        <tr><td class="name">axi4lite_slave</td><td>AXI4-Lite 레지스터 슬레이브, 바이트 strobe</td><td class="mut">ADDR=8 · DATA=32 · NUM_REGS=16</td><td class="mut">write 완료 후 응답</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3><code>block.yaml</code> — 기계가 읽는 계약</h3>
+    <p style="font-size:14px;color:var(--muted);max-width:72ch">단순 설명이 아니라 포트 폭을 파라미터로 표현하고 증명할 불변식을 목록화한 계약. <code>sv-ip-scanner</code>가 이를 읽어 포트 매칭·자동 삽입에 활용합니다.</p>
+    <pre><code><span class="cy">parameters:</span>
+  WIDTH: { type: int, default: 8,  description: <span class="cm">"Data width in bits"</span> }
+  DEPTH: { type: int, default: 16, description: <span class="cm">"FIFO depth (power of 2)"</span> }
+<span class="cy">ports:</span>
+  - { name: wr_data, dir: input,  width: <span class="cy">WIDTH</span> }   <span class="cm"># 폭을 파라미터로 표현</span>
+  - { name: full,    dir: output, width: 1 }
+<span class="cy">formal_proofs:</span>
+  - p_no_overflow:  <span class="cm">"FIFO never accepts writes when full"</span>
+  - p_no_underflow: <span class="cm">"FIFO never allows reads when empty"</span>
+  - p_ptr_range:    <span class="cm">"Pointer difference never exceeds DEPTH"</span></code></pre>
+
+    <h3><code>gf-ip</code> — 라이브러리 조작</h3>
+    <div class="tw"><table>
+      <thead><tr><th>동작</th><th>하는 일</th></tr></thead>
+      <tbody>
+        <tr><td class="name">/gf-ip list</td><td class="mut">모든 블록의 이름·설명·검증 상태 표시</td></tr>
+        <tr><td class="name">/gf-ip info &lt;block&gt;</td><td class="mut">파라미터·포트·formal 증명·의존성 상세</td></tr>
+        <tr><td class="name">/gf-ip add &lt;block&gt;</td><td class="mut">블록을 현재 프로젝트에 설치 (아래 6단계)</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:13.5px;color:var(--muted);margin-top:12px"><b>add 흐름</b> — ① <code>block.yaml</code> 읽기 → ② <code>rtl/*.sv</code>→프로젝트 <code>rtl/</code> → ③ <code>tb/*.sv</code> 복사 → ④ <code>formal/*</code> 복사 → ⑤ <code>.gateflow/project.yaml</code>의 <code>ip_blocks</code>에 추가 → ⑥ README 인스턴스화 예시 표시.</p>
+
+    <h3>자동 탐지·자동 채움</h3>
+    <p style="font-size:14px;color:var(--muted);max-width:72ch">수동 <code>add</code>뿐 아니라 <code>sv-ip-scanner</code> / <code>gf-ip-detect</code> / <code>/gf-detect</code>가 코드베이스를 스캔해 <i>정의 없는 모듈·스텁·CDC 위반</i>을 찾아 라이브러리 블록으로 <b>자동 채움</b>을 제안합니다 (예: CDC 위반 → <code>cdc_2ff</code>/<code>cdc_handshake</code> 삽입 유도).</p>
+
+    <h3>검증 상태 — 실측</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+      <span class="chip"><span class="dot"></span>Lint <b>PASS</b></span>
+      <span class="chip"><span class="dot"></span>Sim <b>8 passed, 0 failed</b></span>
+      <span class="chip" style="border-color:color-mix(in srgb,var(--copper) 45%,var(--line-strong))"><span class="dot" style="background:var(--copper)"></span>Formal <b>버전 주의</b></span>
     </div>
-    <h3>메타데이터에 formal 증명까지 명시 — <code>fifo_sync/block.yaml</code></h3>
-    <pre><code><span class="cy">formal_proofs:</span>
-  - p_no_overflow:  <span class="cm">"가득 찼을 때 쓰기를 받지 않음"</span>
-  - p_no_underflow: <span class="cm">"비었을 때 읽기를 허용하지 않음"</span>
-  - p_ptr_range:    <span class="cm">"포인터 차이가 DEPTH를 넘지 않음"</span></code></pre>
-    <p style="font-size:14px;color:var(--muted)"><code>/gf-ip add fifo_sync</code> 로 프로젝트에 바로 추가할 수 있습니다.</p>
+    <div style="border:1px solid var(--line);border-left:3px solid var(--copper);border-radius:10px;background:var(--surface-2);padding:14px 16px">
+      <p style="font-size:13.5px;color:var(--muted);margin:0"><b style="color:var(--ink)">⚠ Formal 주의</b> — 이 저장소에 apt로 설치한 <b>Yosys 0.33 / SymbiYosys 0.68</b> 조합에서는 IP formal 증명이 그대로 통과하지 않습니다: ① <code>.sby</code>의 <code>[files]</code> 경로가 sby 0.68에서 basename으로 평탄화돼 스크립트의 <code>read -formal rtl/…</code>와 어긋남 · ② <code>_props.sv</code>의 concurrent SVA(<code>assert property (@(posedge clk) …)</code>)를 Yosys 0.33 네이티브 프론트엔드가 거부(<code>unexpected '@'</code>). 최신 Yosys/Verific 프론트엔드를 전제로 작성된 것으로, 플러그인 저장소 쪽 버전 이슈이며 <code>gateflow-ex</code> 코드와는 무관합니다. IP 테스트벤치도 클럭 생성 blocking 할당 때문에 <code>-Wall</code> fatal 시 <code>-Wno-BLKSEQ</code> 우회가 필요합니다.</p>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-top:14px"><code>fifo_sync #(.WIDTH(8), .DEPTH(32)) u_fifo (…)</code> 형태로 프로젝트에 바로 인스턴스화합니다.</p>
   </section>
 
   <!-- BOARDS -->

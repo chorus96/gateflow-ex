@@ -385,45 +385,111 @@ frontmatter(`description`, `tools`, `color`)로 정의됩니다.
 `ip/<block>/` 아래에 **RTL + 테스트벤치 + formal 속성 + 문서 + 메타데이터**가
 한 세트로 들어 있는 검증된 드롭인 블록입니다.
 
-각 블록 폴더 구성:
+매번 새로 생성·검증하는 대신, 이미 **lint·시뮬레이션·formal 속성**까지 갖춰진 블록을
+프로젝트에 복사해 넣습니다.
+
+### 블록 해부 — 한 블록 = 6개 파일
+
+각 블록은 "코드 + 테스트 + 수학적 증명 + 문서"를 자족적으로 담습니다.
+
 ```
 ip/<block>/
-├── block.yaml        # 이름/버전/파라미터/포트/formal 증명 목록/의존성
-├── rtl/<block>.sv    # 합성 가능한 RTL
-├── tb/tb_<block>.sv  # 테스트벤치
-├── formal/           # <block>.sby + <block>_props.sv (SVA 속성)
-└── README.md
+├── block.yaml             # 메타데이터 (파라미터·포트·formal 증명 목록·의존성)
+├── rtl/<block>.sv         # 합성 가능한 RTL 소스
+├── tb/tb_<block>.sv       # 자가검증 테스트벤치
+├── formal/<block>_props.sv# SVA 속성 (assert property)
+├── formal/<block>.sby     # SymbiYosys 증명 설정
+└── README.md              # 인스턴스화 예시 + 검증 명령
 ```
 
-| IP 블록 | 설명 |
-|---------|------|
-| `fifo_sync` | 동기 FIFO (WIDTH/DEPTH 파라미터화) |
-| `fifo_async` | 비동기(2클럭) FIFO |
-| `cdc_2ff` | 2단 플립플롭 동기화기(CDC) |
-| `cdc_handshake` | 핸드셰이크 기반 CDC |
-| `debouncer` | 버튼 디바운서 |
-| `spi_master` | SPI 마스터 |
-| `uart` | UART (TX/RX) |
-| `axi4lite_slave` | AXI4-Lite 슬레이브 |
+### 8개 블록 상세
 
-**`block.yaml` 예시 (`fifo_sync`)** — 파라미터/포트뿐 아니라 formal 증명까지 명시:
+| 블록 | 설명 | 핵심 파라미터 | Formal 속성 |
+|------|------|---------------|-------------|
+| `fifo_sync` | 동기 FIFO, full/empty 플래그 | `WIDTH=8`, `DEPTH=16` | 오버플로·언더플로 없음, 포인터 범위 |
+| `fifo_async` | 비동기(2클럭) FIFO, **Gray 코드 포인터**로 CDC | `WIDTH=8`, `DEPTH=8` | full 시 쓰기 없음 |
+| `cdc_2ff` | 단일 비트 2단 FF 동기화기 | `STAGES=2` | (props 포함) |
+| `cdc_handshake` | 멀티비트 req/ack 핸드셰이크 CDC | `WIDTH=8` | 전송 중 back-pressure |
+| `debouncer` | 버튼 디바운서 + 엣지 검출(rise/fall) | `CLK_FREQ`, `DEBOUNCE_MS=20` | (props 포함) |
+| `spi_master` | SPI 마스터, **4가지 CPOL/CPHA 모드 전부** | `CLK_DIV=4`, `DATA_WIDTH=8` | busy일 때 CS_N low |
+| `uart` | UART TX+RX, 설정 가능 보드레이트(8N1) | `CLK_FREQ`, `BAUD_RATE=115200` | idle 시 TX high, valid 후 ready 해제 |
+| `axi4lite_slave` | AXI4-Lite 레지스터 슬레이브, 바이트 strobe | `ADDR_WIDTH=8`, `DATA_WIDTH=32`, `NUM_REGS=16` | write 완료 후 응답 |
+
+### `block.yaml` — 기계가 읽는 계약
+
+메타데이터가 단순 설명이 아니라 포트 폭을 파라미터로 표현하고 증명해야 할 불변식을
+목록화한 계약입니다. `sv-ip-scanner`가 이를 읽어 포트 매칭·자동 삽입에 활용합니다.
 
 ```yaml
 name: fifo_sync
+version: 1.0.0
+description: Synchronous FIFO with parameterized width and depth
 parameters:
-  WIDTH: { type: int, default: 8 }
-  DEPTH: { type: int, default: 16 }
+  WIDTH: { type: int, default: 8,  description: "Data width in bits" }
+  DEPTH: { type: int, default: 16, description: "FIFO depth (power of 2)" }
 ports:
-  - { name: wr_en, dir: input, width: 1 }
-  - { name: full,  dir: output, width: 1 }
-  # ...
+  - { name: wr_data, dir: input,  width: WIDTH }   # 폭을 파라미터로 표현
+  - { name: full,    dir: output, width: 1 }
 formal_proofs:
-  - p_no_overflow:  "가득 찼을 때 쓰기를 받지 않음"
-  - p_no_underflow: "비었을 때 읽기를 허용하지 않음"
-  - p_ptr_range:    "포인터 차이가 DEPTH를 넘지 않음"
+  - p_no_overflow:  "FIFO never accepts writes when full"
+  - p_no_underflow: "FIFO never allows reads when empty"
+  - p_ptr_range:    "Pointer difference never exceeds DEPTH"
+dependencies: []
 ```
 
-`/gf-ip add fifo_sync` 처럼 프로젝트에 바로 추가할 수 있습니다.
+각 formal 속성은 실제 SVA로 구현됩니다 — 예: 언더플로 방지
+
+```systemverilog
+p_no_underflow: assert property (@(posedge clk) disable iff (!rst_n)
+    !(rd_en && empty));    // 비었을 때 읽기 요청이 있으면 위반
+```
+
+### `gf-ip` — 라이브러리 조작
+
+| 동작 | 하는 일 |
+|------|---------|
+| `/gf-ip list` | 모든 블록의 이름·설명·검증 상태 표시 |
+| `/gf-ip info <block>` | 파라미터·포트·formal 증명·의존성 상세 |
+| `/gf-ip add <block>` | 블록을 현재 프로젝트에 설치 |
+
+**`add` 흐름 (6단계)** — ① `block.yaml` 읽기 → ② `rtl/*.sv`를 프로젝트 `rtl/`로 복사
+→ ③ `tb/*.sv` 복사 → ④ `formal/*` 복사 → ⑤ `.gateflow/project.yaml`의 `ip_blocks`에
+추가 → ⑥ README 인스턴스화 예시 표시.
+
+```systemverilog
+fifo_sync #(.WIDTH(8), .DEPTH(32)) u_fifo (
+    .clk(sys_clk), .rst_n(sys_rst_n),
+    .wr_en(wr_valid && !fifo_full), .wr_data(wr_data),
+    .rd_en(rd_consume), .rd_data(rd_out),
+    .full(fifo_full), .empty(fifo_empty)
+);
+```
+
+### 자동 탐지·자동 채움과의 연계
+
+수동 `add`뿐 아니라, **`sv-ip-scanner` 에이전트 / `gf-ip-detect` 스킬 / `/gf-detect`** 가
+코드베이스를 스캔해 *인스턴스화됐지만 정의 없는 모듈*, *스텁*, *CDC 위반*을 찾아
+라이브러리 블록으로 **자동 채움(auto-fill)** 을 제안합니다. (예: CDC 위반 발견 시
+`cdc_2ff`/`cdc_handshake` 삽입 유도.)
+
+### 검증 상태 — 실측
+
+스킬 문서는 8개 블록 전부 `lint + sim + formal`로 표기합니다. 이 저장소에 설치된
+툴로 `fifo_sync`를 직접 검증한 결과:
+
+- ✅ **Lint** — `verilator --lint-only -Wall` → PASS
+- ✅ **Sim** — `tb_fifo_sync` 실행 → **8 passed, 0 failed**
+- ⚠️ **Formal 주의** — 이 저장소에 apt로 설치한 **Yosys 0.33 / SymbiYosys 0.68** 조합에서는
+  IP의 formal 증명이 그대로 통과하지 않습니다:
+  1. `.sby`의 `[files]` 경로가 sby 0.68에서 basename으로 평탄화되어 스크립트의
+     `read -formal rtl/…` 경로와 어긋남
+  2. `_props.sv`의 concurrent SVA(`assert property (@(posedge clk) …)`)를 Yosys 0.33
+     네이티브 프론트엔드가 거부(`unexpected '@'`) — 최신 Yosys 또는 Verific 프론트엔드 필요
+
+  → formal 증명은 더 최신 Yosys/sby 조합을 전제로 작성돼 있습니다(플러그인 저장소 쪽
+  버전 이슈이며 `gateflow-ex` 코드와는 무관). 또한 IP 테스트벤치도 예제 카운터와 같이
+  클럭 생성에 blocking 할당을 써서 `-Wall`을 fatal로 두면 시뮬 빌드가 막히므로
+  `-Wno-BLKSEQ`로 우회합니다.
 
 ---
 
