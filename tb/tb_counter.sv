@@ -13,7 +13,7 @@ module tb_counter;
 
     counter #(.WIDTH(WIDTH)) u_dut (.*);
 
-    always #(CLK_PERIOD/2) clk = ~clk;
+    always #(CLK_PERIOD/2) clk <= ~clk;
 
     task automatic check(string name, logic [WIDTH-1:0] expected);
         if (count !== expected) begin
