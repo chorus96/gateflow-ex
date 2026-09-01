@@ -294,6 +294,26 @@
       <p style="font-size:13px;color:var(--muted);margin:12px 0 0;max-width:74ch"><b style="color:var(--ink)">이점</b> — 컨텍스트 격리(시행착오가 부모를 오염 안 함) · 병렬성(독립 모듈 동시 생성) · 역할 분리(각자 전문 시스템 프롬프트·도구만 사용).</p>
     </div>
 
+    <div style="border:1px solid var(--line);border-left:3px solid var(--signal);border-radius:11px;background:var(--surface-2);padding:16px 18px;margin-bottom:20px">
+      <p style="font-family:var(--disp);font-weight:700;font-size:15px;margin:0 0 8px">자체 도구 루프(own tool loop)란?</p>
+      <p style="font-size:13.5px;color:var(--muted);margin:0 0 14px;max-width:74ch">LLM 에이전트는 한 응답으로 끝내지 않고 <b>추론 → 도구 호출 → 결과 관찰 → 다시 추론</b>을 완료까지 반복합니다(agentic loop). 미리 짜인 순서가 아니라 관찰 결과에 따라 다음 행동을 <b>스스로 결정</b>합니다(lint 실패 → 수정 → 재-lint).</p>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px">
+        <div style="background:var(--surface);padding:12px 10px;text-align:center"><div style="font-family:var(--mono);font-size:11px;color:var(--signal)">①</div><div style="font-family:var(--disp);font-weight:700;font-size:13px;margin-top:3px">추론</div><div style="font-size:11px;color:var(--muted);margin-top:2px">무엇을 할까</div></div>
+        <div style="background:var(--surface);padding:12px 10px;text-align:center"><div style="font-family:var(--mono);font-size:11px;color:var(--signal)">②</div><div style="font-family:var(--disp);font-weight:700;font-size:13px;margin-top:3px">도구</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Read/Write/Bash</div></div>
+        <div style="background:var(--surface);padding:12px 10px;text-align:center"><div style="font-family:var(--mono);font-size:11px;color:var(--signal)">③</div><div style="font-family:var(--disp);font-weight:700;font-size:13px;margin-top:3px">관찰</div><div style="font-size:11px;color:var(--muted);margin-top:2px">에러·출력</div></div>
+        <div style="background:var(--surface);padding:12px 10px;text-align:center"><div style="font-family:var(--mono);font-size:11px;color:var(--copper)">④↻</div><div style="font-family:var(--disp);font-weight:700;font-size:13px;margin-top:3px">판단</div><div style="font-size:11px;color:var(--muted);margin-top:2px">끝? 아니면 ①로</div></div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin:0 0 12px;max-width:74ch"><b style="color:var(--ink)">"자체(own)"</b>인 이유 — 스폰된 자식은 부모와 분리된 자기만의 루프를 돌린다. 부모는 <code>Task</code>를 한 번 호출하고 대기하지만, 그 사이 자식은 <b>여러 턴에 걸쳐</b> 도구를 스스로 반복 호출해 작업을 완수하고 <b>최종 결과 하나만</b> 반환한다. 부모에게 <code>Task</code>는 "블랙박스 작업 하나"다.</p>
+      <div class="tw"><table style="min-width:420px">
+        <thead><tr><th></th><th>자체 도구 루프</th><th>검증 루프</th></tr></thead>
+        <tbody>
+          <tr><td class="name">주체</td><td class="mut">개별 에이전트(자식) 내부</td><td class="mut">오케스트레이터(부모) 수준</td></tr>
+          <tr><td class="name">반복 대상</td><td class="mut">reason→tool→observe 사이클</td><td class="mut">lint→sim→formal→synth 단계</td></tr>
+          <tr><td class="name">성격</td><td class="mut">작동 <b>메커니즘</b></td><td class="mut">품질 보장 <b>정책</b></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
     <div class="pipe">
       <div class="pstep"><div class="mark">①</div><div class="pbody"><p class="pt">기본 패턴 — Task 툴</p><p class="pd"><code>subagent_type: "gateflow:sv-codegen"</code> + <b>자족적 프롬프트</b>(스펙·인터페이스·제약·출력 경로). 서브에이전트는 부모 맥락을 자동으로 갖지 못하므로 모두 명시해야 한다.</p></div></div>
       <div class="pstep"><div class="mark">②</div><div class="pbody"><p class="pt">세션 모델 상속</p><p class="pd">스폰된 에이전트는 부모와 <b>동일한 모델</b>로 실행돼 품질·일관성을 맞춘다. <code>gf-lint</code>/<code>gf-sim</code> 같은 순수 툴 실행은 모델 불필요.</p></div></div>
