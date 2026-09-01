@@ -442,6 +442,36 @@ gf-learn 스킬 ── 문제 생성 → 풀이 접수 ──► sv-tutor (lint 
 needs_revision → /gf-learn check 로 재리뷰 (반복)
 ```
 
+### 자세히 보기 — `pcb-designer` (물리 하드웨어)
+
+`pcb-designer`는 GateFlow에서 **유일하게 RTL을 벗어나 물리 하드웨어(PCB)** 를 다루는
+에이전트입니다. KiCad **회로도(.kicad_sch)·PCB(.kicad_pcb)·BOM(.csv)** 을 AI 검증
+초안으로 생성합니다. 진입점은 `gf-pcb` 스킬 / `/gf-pcb`.
+
+다른 SV 에이전트와 도구가 다릅니다 — **`Write`**(읽기 전용이 아님)와 **`WebSearch`/
+`WebFetch`**(실제 부품 번호·유통사 검색)를 가집니다.
+
+**⚠ 안전 면책 필수** — 물리 하드웨어이므로 모든 출력 파일에 경고 헤더를 넣습니다:
+*"AI 생성 설계. PCB 발주·실제 회로 연결 전 반드시 사람의 엔지니어링 검토 필요."*
+
+**자기개선 검증 루프** — `Generate → DRC → ERC → AI Review → Fix → Re-verify → Deliver`.
+`kicad-cli pcb drc` / `sch erc`로 규칙 검사하고, AI Review 체크리스트(전원 넷 연결,
+5mm 내 디커플링 캡, floating 입력 없음, I/O 전압 일치, 크리스털 배치 등)를 돌립니다.
+
+**신뢰도 점수 + 범위 한계** — 출력마다 High/Medium/Low로 사람 검토 강도를 안내하고,
+잘하는 것(FPGA 브레이크아웃·센서·MCU·LED 드라이버)과 **부적합(고속 >1GHz·RF·전력전자
+>1A·Flex·임피던스 제어)** 을 명시해 위험 영역을 스스로 거부합니다. DRC/ERC 오류는
+`~/.gateflow/pcb_learnings.json`에 축적해 다음 생성 품질을 개선합니다.
+
+| | 대부분의 `sv-*` | `pcb-designer` |
+|---|----------------|-----------------|
+| 도메인 | RTL(논리) | 물리 PCB/회로도 |
+| 도구 | Read/Bash 위주 | Write + WebSearch/WebFetch |
+| 검증 | lint/sim/formal | DRC/ERC/AI Review |
+| 특이점 | — | 안전 면책·신뢰도 점수·범위 거부·learnings |
+
+---
+
 ### 참고 — 에이전트가 쓰는 Claude Code 도구 (Glob/Grep/Read/Bash)
 
 에이전트 frontmatter의 `tools` 목록은 **GateFlow 고유 기능이 아니라 Claude Code가
