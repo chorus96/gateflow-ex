@@ -434,6 +434,24 @@
       </tbody>
     </table></div>
     <p style="font-size:13px;color:var(--muted);margin-top:12px"><b>기호</b> — <code>◆</code>최상위 <code>■</code>중간 <code>□</code>리프 · <code>→←↔</code>포트 방향 · <code>↻</code>FSM · <code>◉</code>리셋 · <code>✓</code>통과 <code>⚠</code>경고. <b>대화형</b> — 모든 뷰가 번호 메뉴(<code>[1]</code>계층 <code>[2]</code>FSM <code>[3]</code>상세 · <code>H</code>홈 · <code>↑</code>부모)와 자유 입력("show uart_tx", "trace &lt;signal&gt;")으로 끝나 뷰 사이를 오간다.</p>
+
+    <h3>자세히 보기 — sv-tutor (SystemVerilog 튜터)</h3>
+    <p style="font-size:14px;color:var(--muted);max-width:74ch;margin-bottom:14px">학생 풀이를 채점·리뷰하고 <b>답을 직접 주지 않으면서</b> 힌트로 유도하며 개념을 가르치는 교육 에이전트(<code>Read</code>/<code>Bash</code>/<code>Grep</code>/<code>Glob</code>). 학습 모드 스킬 <code>gf-learn</code>에서 라우팅됩니다. 핵심 철학 <i>"정답을 그대로 주지 않는다"</i> 덕에, 그냥 고쳐주는 <code>sv-refactor</code>·만들어주는 <code>sv-codegen</code>과 결정적으로 다릅니다.</p>
+    <div class="cards" style="margin-bottom:16px">
+      <div class="card"><p class="t"><span class="idx">review</span></p><p>채점 + 피드백 (답은 안 줌)</p></div>
+      <div class="card"><p class="t"><span class="idx">hint</span></p><p>점진적 힌트만 (모호 → 구체)</p></div>
+      <div class="card"><p class="t"><span class="idx">explain</span></p><p>개념을 가르침</p></div>
+    </div>
+    <p style="font-size:14px;color:var(--muted);max-width:74ch"><b>Review 흐름</b> — ① <code>verilator --lint-only -Wall</code>로 실제 lint 실행 → ② 연습문제 스펙 대조 → ③ <b>Correctness·Style 각 10점</b> 채점 + 힌트(답 아님) + Next Steps. <code>needs_revision</code>이면 학생이 고친 뒤 <code>/gf-learn check</code>로 돌아오는 <b>반복 학습 루프</b>. 반환 블록에 <code>STATUS</code>·<code>SCORE: X/10</code> 포함.</p>
+    <div class="tw" style="margin-top:14px"><table style="min-width:440px">
+      <thead><tr><th>학습 계층</th><th>정체</th><th>역할</th></tr></thead>
+      <tbody>
+        <tr><td class="name sig">gf-learn</td><td class="mut">스킬(진입점, 직접 호출)</td><td class="mut">학습 모드 — 연습문제 생성, 풀이 접수</td></tr>
+        <tr><td class="name">sv-tutor</td><td class="mut">에이전트(작업자)</td><td class="mut">풀이 리뷰·채점·힌트·교육</td></tr>
+        <tr><td class="name sig">gf-learn-ctx</td><td class="mut">스킬(내부 전용)</td><td class="mut">워크플로 중 마이크로 레슨 삽입</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:13px;color:var(--muted);margin-top:12px"><code>gf-learn</code>(문제 생성·접수) → <code>sv-tutor</code>(lint 실행→채점→힌트) → <code>needs_revision</code> 시 <code>/gf-learn check</code>로 재리뷰 — <code>gf-</code>→<code>sv-</code> 위임 + 반복 루프.</p>
   </section>
 
   <!-- SKILLS -->

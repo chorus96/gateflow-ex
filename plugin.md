@@ -404,6 +404,44 @@ frontmatter(`description`, `tools`, `color`)로 정의됩니다.
 > `/gf-map`(맵 생성) → `gf-viz`(진입 스킬) → `sv-viz`(렌더 에이전트)는 앞서 설명한
 > `gf-`→`sv-` 위임 패턴의 대표 사례입니다.
 
+### 자세히 보기 — `sv-tutor` (SystemVerilog 튜터)
+
+`sv-tutor`는 학생 풀이를 채점·리뷰하고 **답을 직접 주지 않으면서** 힌트로 유도하며
+개념을 가르치는 교육 에이전트입니다(도구: `Read`/`Bash`/`Grep`/`Glob`). 학습 모드
+스킬 `gf-learn`에서 라우팅됩니다. 핵심 철학은 *"정답을 그대로 주지 않는다"* — 그래서
+그냥 고쳐주는 `sv-refactor`나 만들어주는 `sv-codegen`과 결정적으로 다릅니다.
+
+**3가지 모드** (프롬프트의 `mode`로 결정):
+
+| 모드 | 동작 |
+|------|------|
+| `review` | 채점 + 피드백 (답은 안 줌) |
+| `hint` | 점진적 힌트만 (모호 → 구체) |
+| `explain` | 개념을 가르침 |
+
+난이도(`beginner`/`advanced`)도 받아 설명 깊이를 조절합니다.
+
+**Review 흐름** — ① `verilator --lint-only -Wall`로 **실제 lint 실행** → ② 연습문제
+스펙 대조 → ③ **Correctness·Style을 각각 10점**으로 채점 + 힌트(답 아님) + Next Steps.
+`needs_revision`이면 학생이 고친 뒤 `/gf-learn check`로 돌아오는 **반복 학습 루프**가
+형성됩니다. 반환 블록에 `STATUS`(complete/needs_revision)와 `SCORE: X/10`을 담습니다.
+
+**학습 계층 구분**:
+
+| | 정체 | 역할 |
+|---|------|------|
+| `gf-learn` | 스킬(진입점, 직접 호출) | 학습 모드 — 연습문제 생성, 풀이 접수 |
+| `sv-tutor` | 에이전트(작업자) | 풀이 리뷰·채점·힌트·교육 |
+| `gf-learn-ctx` | 스킬(내부 전용) | 워크플로 중 마이크로 레슨 삽입 |
+
+```
+"SystemVerilog 가르쳐줘"
+   ▼
+gf-learn 스킬 ── 문제 생성 → 풀이 접수 ──► sv-tutor (lint 실행 → 채점 → 힌트)
+   │        ◄──── STATUS/SCORE 반환 ────────┘
+needs_revision → /gf-learn check 로 재리뷰 (반복)
+```
+
 ---
 
 ## 6. 스킬 (27개)
