@@ -417,6 +417,22 @@
       </tbody>
     </table></div>
 
+    <h3>자세히 보기 — /gf-map (코드베이스 맵 생성)</h3>
+    <p style="font-size:14px;color:var(--muted);max-width:74ch;margin-bottom:14px">SystemVerilog 코드베이스 전체를 분석해 <b><code>.gateflow/map/</code></b>에 종합 "지도"를 만드는 커맨드. 이 맵은 <code>sv-viz</code>·<code>sv-understanding</code>·<code>sv-developer</code>가 코드베이스를 빠르게 이해하는 <b>공유 컨텍스트 인덱스</b>가 됩니다(매번 전체를 읽지 않도록).</p>
+    <p style="font-size:14px;color:var(--muted);max-width:74ch">직접 파싱하지 않고 <code>gf-architect</code>를 스폰 — 원칙은 <i>"You orchestrate, Sonnet reads"</i>. 오케스트레이터는 파일을 직접 읽지 않고 <b>Sonnet 서브에이전트에 위임</b>합니다: Glob으로 파일 수집·토큰 계산 → 크기별 <b>2~10개 병렬 스폰</b> → regex 구조 추출 + 컨텍스트 병합 → <code>.gateflow/map/</code> 합성.</p>
+    <div class="tw" style="margin:14px 0"><table style="min-width:440px">
+      <thead><tr><th>코드베이스 토큰</th><th>에이전트 수</th></tr></thead>
+      <tbody>
+        <tr><td class="name">&lt; 50k</td><td class="mut">2 (최소 병렬)</td></tr>
+        <tr><td class="name">50k~300k</td><td class="mut">3</td></tr>
+        <tr><td class="name">300k~600k</td><td class="mut">4~5</td></tr>
+        <tr><td class="name">600k~1M</td><td class="mut">6~8 (에이전트당 150k 미만)</td></tr>
+        <tr><td class="name">&gt; 1M</td><td class="mut">8~10 (상한)</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:14px;color:var(--muted);max-width:74ch"><b>산출물</b> — <code>CODEBASE.md</code>(AI 친화 요약 인덱스, 중심) + <code>hierarchy</code>·<code>signals</code>·<code>fsm</code>·<code>clock-domains</code>·<code>packages</code>·<code>types</code>·<code>verification</code>·<code>recipe</code> … + <code>modules/&lt;module&gt;.md</code>. <b>증분 업데이트</b> — 두 번째 실행부터 git 히스토리로 <b>변경 파일만</b> 재분석·병합(커밋 해시 저장). 첫 실행은 전체 스캔, 이후는 변경분만.</p>
+    <p style="font-size:13px;color:var(--muted);margin-top:12px"><code>/gf-map</code>(생성) → <code>gf-architect</code>(병렬 분석) → <code>.gateflow/map/</code>(인덱스) → <code>sv-viz</code> 등이 소비 — 아래 sv-viz가 맵 없으면 "Run /gf-map first"라 안내하는 이유.</p>
+
     <h3>자세히 보기 — sv-viz (터미널 시각화)</h3>
     <p style="font-size:14px;color:var(--muted);max-width:74ch;margin-bottom:14px">코드베이스 아키텍처를 <b>ASCII/유니코드 다이어그램</b>으로 그려 터미널에서 대화형으로 탐색하는 <b>읽기 전용</b> 에이전트(<code>Read</code>/<code>Glob</code>/<code>Grep</code>). 직접 RTL을 파싱하지 않고 <code>/gf-map</code>이 만든 <code>.gateflow/map/</code>을 읽어 렌더링합니다 — 맵이 없으면 "Run /gf-map first" 안내.</p>
     <div class="pipe" style="margin-bottom:18px">

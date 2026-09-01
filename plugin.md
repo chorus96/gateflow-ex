@@ -372,6 +372,42 @@ frontmatter(`description`, `tools`, `color`)로 정의됩니다.
 | `gf-auditor` | 플러그인 품질 감사 — 갭/불일치/누락 리포트 |
 | `gf-pluginfixer` | 감사 결과를 받아 자동으로 갭 수정 |
 
+### 자세히 보기 — `/gf-map` (코드베이스 맵 생성)
+
+`/gf-map`은 SystemVerilog 코드베이스 전체를 분석해 **`.gateflow/map/`** 에 종합
+"지도"를 만드는 커맨드입니다. 이 맵은 이후 `sv-viz`·`sv-understanding`·`sv-developer`가
+코드베이스를 빠르게 이해하는 **공유 컨텍스트 인덱스**가 됩니다(매번 전체를 읽지 않도록).
+
+**동작 — 병렬 서브에이전트.** 직접 파싱하지 않고 `gf-architect`를 스폰합니다.
+핵심 원칙은 *"You orchestrate, Sonnet reads"* — 오케스트레이터는 파일을 직접 읽지 않고
+Sonnet 서브에이전트에 위임합니다.
+
+```
+/gf-map ── Glob **/*.sv 수집·토큰 계산 ──► gf-architect 스폰
+             → 크기별 2~10개 Sonnet 병렬 스폰(단일 메시지)
+             → regex 구조 추출 + 컨텍스트 병합 → .gateflow/map/ 합성
+```
+
+| 코드베이스 토큰 | 에이전트 수 |
+|-----------------|-------------|
+| < 50k | 2 (최소 병렬) |
+| 50k~300k | 3 |
+| 300k~600k | 4~5 |
+| 600k~1M | 6~8 (에이전트당 150k 미만) |
+| > 1M | 8~10 (상한) |
+
+**산출물 `.gateflow/map/`** — `CODEBASE.md`(AI 친화 요약 인덱스, 중심) +
+`hierarchy.md`·`signals.md`·`fsm.md`·`clock-domains.md`·`packages.md`·`types.md`·
+`functions.md`·`verification.md`·`recipe.md` … + `modules/<module>.md`(모듈별 상세).
+완료 후 `CLAUDE.md`에도 요약을 갱신합니다.
+
+**증분 업데이트** — 두 번째 실행부터는 기존 `CODEBASE.md`를 감지하고 **git 히스토리로
+변경 파일만** 재분석·병합하며 커밋 해시를 저장합니다. 첫 실행은 전체 스캔(토큰 큼),
+이후는 변경분만 빠르게.
+
+> `/gf-map`(생성) → `gf-architect`(병렬 분석) → `.gateflow/map/`(인덱스) → `sv-viz`
+> 등이 소비. 아래 `sv-viz`가 맵이 없으면 "Run /gf-map first"라고 안내하는 이유입니다.
+
 ### 자세히 보기 — `sv-viz` (터미널 시각화)
 
 `sv-viz`는 코드베이스 아키텍처를 **ASCII/유니코드 다이어그램**으로 그려 터미널 안에서
