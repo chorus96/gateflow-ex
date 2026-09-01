@@ -1,0 +1,14 @@
+# Verilator / simulation artifacts
+obj_dir/
+*.vcd
+*.fst
+*.log
+
+# Yosys / synthesis artifacts
+*.json
+*.blif
+*.asc
+*.bit
+
+# GateFlow working dirs
+.gateflow/map/
