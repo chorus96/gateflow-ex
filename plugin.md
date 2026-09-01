@@ -256,6 +256,41 @@ FILES_CREATED: rtl/alu.sv
 에이전트는 특정 전문 영역을 담당하는 서브에이전트입니다. `agents/*.md`의
 frontmatter(`description`, `tools`, `color`)로 정의됩니다.
 
+### 네이밍 규칙 — `sv-` vs `gf-`
+
+접두사가 곧 **아키텍처 계층**을 나타냅니다.
+
+- **`sv-`** = **일을 하는 작업자(worker) 에이전트** — SystemVerilog RTL 도메인 전문가.
+  전부 `agents/`에 있고 `Task`로 스폰됩니다. 도메인이 다르면 접두사도 달라집니다:
+  **`vhdl-`**(vhdl-codegen/testbench), **`pcb-`**(pcb-designer).
+- **`gf-`** = **GateFlow 브랜드 네임스페이스** — 사용자가 부르는 진입점, 즉 **슬래시
+  커맨드(21개 전부)와 스킬**에 붙습니다. 다른 플러그인과 이름 충돌을 피하려는
+  네임스페이스이며, 플러그인 자체를 감사·수정하는 유지보수 에이전트
+  (`gf-auditor`, `gf-pluginfixer`)도 여기에 해당합니다.
+
+즉 `sv-`는 **"누가(역할·도메인)"**, `gf-`는 **"제품 표면(어떻게 불리나)"** 을 뜻합니다.
+가장 중요한 점은 **같은 기능이 두 접두사로 짝**을 이루고, `gf-`(진입점)가 `sv-`(작업자)에게
+위임한다는 것입니다:
+
+| 사용자 진입점 (`gf-`) | 실제 작업자 (`sv-`) |
+|----------------------|---------------------|
+| `/gf-formal`, `gf-formal` 스킬 | `sv-formal` 에이전트 |
+| `gf-plan` 스킬 | `sv-planner` 에이전트 |
+| `gf-viz` 스킬 | `sv-viz` 에이전트 |
+| `/gf-detect`, `gf-ip-detect` 스킬 | `sv-ip-scanner` 에이전트 |
+| `/gf-fix` 커맨드 | `sv-refactor` 에이전트 |
+| `gf-synth` 스킬 · `/gf-pinmap` | `sv-synth` · `sv-pinmap` 에이전트 |
+
+```
+사용자 ──► /gf-*  또는  gf-* 스킬     ← 진입점(오케스트레이션 표면)
+                │  (명확화 → 계획 → 스폰)
+                ▼
+            sv-* 에이전트             ← 실제 RTL 작업자
+```
+
+> 비유하면 `gf-`는 **프런트데스크 + 작업 지시서**, `sv-`는 **현장 기술자**입니다.
+> (예외: 루트 오케스트레이터 스킬 `gf`와 `tb-best-practices`는 이 접두사 패턴 밖.)
+
 ### SystemVerilog 코어
 
 | 에이전트 | 역할 | 트리거 예시 |

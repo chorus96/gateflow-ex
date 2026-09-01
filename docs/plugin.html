@@ -320,6 +320,32 @@
       <p class="sec-sub">특정 전문 영역을 담당하는 서브에이전트. <code>agents/*.md</code>의 frontmatter로 정의됩니다.</p>
     </div>
 
+    <h3>네이밍 규칙 — sv- vs gf-</h3>
+    <p style="font-size:14px;color:var(--muted);max-width:74ch;margin-bottom:16px">접두사가 곧 <b>아키텍처 계층</b>을 나타냅니다. <code>sv-</code>는 <b>누가(역할·도메인)</b>, <code>gf-</code>는 <b>제품 표면(어떻게 불리나)</b>.</p>
+    <div class="cards" style="margin-bottom:18px">
+      <div class="card" style="border-left:3px solid var(--copper)">
+        <p class="t"><span class="idx" style="color:var(--copper)">sv-</span>작업자 에이전트</p>
+        <p>SystemVerilog RTL 도메인 전문가. <code>agents/</code>에 있고 <code>Task</code>로 스폰됨. 도메인이 다르면 접두사도 다름 — <b>vhdl-</b>, <b>pcb-</b>.</p>
+      </div>
+      <div class="card" style="border-left:3px solid var(--signal)">
+        <p class="t"><span class="idx" style="color:var(--signal)">gf-</span>GateFlow 네임스페이스</p>
+        <p>사용자가 부르는 진입점 — 슬래시 커맨드(21개 전부)·스킬. 이름 충돌을 피하는 네임스페이스. 유지보수 에이전트 <code>gf-auditor</code>/<code>gf-pluginfixer</code>도 포함.</p>
+      </div>
+    </div>
+    <p style="font-size:14px;color:var(--muted);max-width:74ch">핵심은 <b>같은 기능이 두 접두사로 짝</b>을 이루고 <code>gf-</code>(진입점)가 <code>sv-</code>(작업자)에게 <b>위임</b>한다는 점입니다:</p>
+    <div class="tw"><table style="min-width:420px">
+      <thead><tr><th>사용자 진입점 (gf-)</th><th>실제 작업자 (sv-)</th></tr></thead>
+      <tbody>
+        <tr><td class="name sig">/gf-formal · gf-formal 스킬</td><td class="name">sv-formal</td></tr>
+        <tr><td class="name sig">gf-plan 스킬</td><td class="name">sv-planner</td></tr>
+        <tr><td class="name sig">gf-viz 스킬</td><td class="name">sv-viz</td></tr>
+        <tr><td class="name sig">/gf-detect · gf-ip-detect 스킬</td><td class="name">sv-ip-scanner</td></tr>
+        <tr><td class="name sig">/gf-fix 커맨드</td><td class="name">sv-refactor</td></tr>
+        <tr><td class="name sig">gf-synth 스킬 · /gf-pinmap</td><td class="name">sv-synth · sv-pinmap</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:13px;color:var(--muted);margin-top:12px"><code>gf-</code>는 <b>프런트데스크 + 작업 지시서</b>, <code>sv-</code>는 <b>현장 기술자</b>. (예외: 루트 스킬 <code>gf</code>와 <code>tb-best-practices</code>는 이 패턴 밖.)</p>
+
     <h3>SystemVerilog 코어</h3>
     <div class="tw"><table>
       <thead><tr><th>에이전트</th><th>역할</th><th>트리거 예시</th></tr></thead>
