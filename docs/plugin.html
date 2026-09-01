@@ -452,6 +452,19 @@
       </tbody>
     </table></div>
     <p style="font-size:13px;color:var(--muted);margin-top:12px"><code>gf-learn</code>(문제 생성·접수) → <code>sv-tutor</code>(lint 실행→채점→힌트) → <code>needs_revision</code> 시 <code>/gf-learn check</code>로 재리뷰 — <code>gf-</code>→<code>sv-</code> 위임 + 반복 루프.</p>
+
+    <h3>참고 — 에이전트가 쓰는 Claude Code 도구</h3>
+    <p style="font-size:14px;color:var(--muted);max-width:74ch;margin-bottom:14px">에이전트 frontmatter의 <code>tools</code>는 <b>GateFlow 고유가 아니라 Claude Code 기본 도구</b>입니다. 그중 <code>Glob</code>은 여러 에이전트가 "작업할 파일을 먼저 수집"하는 첫 단계로 씁니다 — 파일 <b>이름/경로</b>를 와일드카드 패턴으로 매칭해 경로 목록을 빠르게 얻고, 내용은 보지 않습니다.</p>
+    <div class="tw" style="margin-bottom:14px"><table style="min-width:440px">
+      <thead><tr><th>도구</th><th>무엇으로 찾나</th><th>결과</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Glob</td><td>파일 <b>이름/경로</b> 패턴 (<code>rtl/**/*.sv</code>, <code>*.{sv,svh}</code>)</td><td class="mut">파일 경로 목록</td></tr>
+        <tr><td class="name">Grep</td><td>파일 <b>내용</b>(정규식)</td><td class="mut">매칭된 줄/파일</td></tr>
+        <tr><td class="name">Read</td><td>지정 파일</td><td class="mut">파일 내용</td></tr>
+        <tr><td class="name">Bash</td><td>쉘 명령(lint/sim 등)</td><td class="mut">명령 출력</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:13px;color:var(--muted);max-width:74ch">Claude Code는 파일 찾기에 <code>find</code>/<code>ls</code>보다 <code>Glob</code>·<code>Grep</code> 전용 도구를 우선 쓴다. 전형적 흐름은 <b>Glob(찾기) → Grep(좁히기) → Read(확인)</b>. 예: <code>sv-viz</code>는 <code>Glob</code>으로 <code>.gateflow/map/CODEBASE.md</code> 존재를 먼저 확인(없으면 "Run /gf-map first").</p>
   </section>
 
   <!-- SKILLS -->
