@@ -372,6 +372,38 @@ frontmatter(`description`, `tools`, `color`)로 정의됩니다.
 | `gf-auditor` | 플러그인 품질 감사 — 갭/불일치/누락 리포트 |
 | `gf-pluginfixer` | 감사 결과를 받아 자동으로 갭 수정 |
 
+### 자세히 보기 — `sv-viz` (터미널 시각화)
+
+`sv-viz`는 코드베이스 아키텍처를 **ASCII/유니코드 다이어그램**으로 그려 터미널 안에서
+대화형으로 탐색하게 해주는 **읽기 전용** 에이전트입니다(도구: `Read`/`Glob`/`Grep`).
+
+**전제 — 맵이 있어야 함.** 직접 RTL을 파싱하지 않고, `/gf-map`이 미리 만든
+`.gateflow/map/` 데이터를 읽어 렌더링합니다. 맵이 없으면 "Run /gf-map first"라고 안내합니다.
+
+```
+/gf-map ──► .gateflow/map/ 생성 ──► gf-viz(진입점) ──► sv-viz(렌더)
+            CODEBASE.md, hierarchy.md, fsm.md …
+```
+
+**4가지 뷰** — 각기 다른 맵 파일을 읽어 렌더:
+
+| 뷰 | 내용 | 읽는 파일 |
+|----|------|-----------|
+| Dashboard | 요약(모듈·FSM·health) + 압축 계층 | `CODEBASE.md`·`hierarchy.md`·`fsm.md`·`clock-domains.md` |
+| Hierarchy | 모듈 계층 트리 + 인스턴스 테이블 | `hierarchy.md`·`modules/*.md` |
+| FSM Viewer | 상태 다이어그램(7+ 상태는 전이 테이블) | `fsm.md`·`modules/<m>.md` |
+| Module Detail | 포트·파라미터·연결·health 카드 | `modules/<m>.md`·`signals.md` 등 |
+
+**기호 체계** — `◆`최상위 `■`중간 `□`리프 모듈, `→←↔`포트 방향, `↻`FSM, `◉`리셋 상태,
+`✓`통과 `⚠`경고. 박스 드로잉과 트리 커넥터로 계층 깊이를 표현합니다.
+
+**대화형 탐색** — 정적 그림이 아니라 세션입니다. 모든 뷰가 하단 번호 메뉴(`[1]`계층
+`[2]`FSM `[3]`상세, `H`홈, `↑`부모)와 자유 입력("show uart_tx", "trace <signal>",
+"which modules use X?")으로 끝나 뷰 사이를 오갑니다.
+
+> `/gf-map`(맵 생성) → `gf-viz`(진입 스킬) → `sv-viz`(렌더 에이전트)는 앞서 설명한
+> `gf-`→`sv-` 위임 패턴의 대표 사례입니다.
+
 ---
 
 ## 6. 스킬 (27개)
