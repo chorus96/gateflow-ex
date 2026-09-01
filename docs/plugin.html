@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="GateFlow 플러그인(v2.5.3) 상세 분석 — 에이전트·스킬·커맨드·IP·보드 한국어 레퍼런스">
+<title>GateFlow 플러그인 해부</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@500;700;900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#eef1f1; --surface:#ffffff; --surface-2:#f6f8f8;
+    --ink:#15201e; --muted:#566662; --faint:#7d8d89;
+    --line:#d6dddb; --line-strong:#c2cbc8;
+    --copper:#a4581a; --copper-soft:#b5651d;
+    --signal:#0c7883; --signal-soft:#0e8a96;
+    --code-bg:#f0f3f2;
+    --shadow:0 1px 2px rgba(20,40,36,.06),0 8px 24px -12px rgba(20,40,36,.14);
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --disp:"Chivo",var(--sans);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0c1312; --surface:#121c1a; --surface-2:#0f1817;
+      --ink:#e7efec; --muted:#94a8a3; --faint:#6f827d;
+      --line:#233230; --line-strong:#2f423f;
+      --copper:#e2985c; --copper-soft:#eaa96f;
+      --signal:#3fd0c9; --signal-soft:#57d9d2;
+      --code-bg:#0e1716;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 30px -14px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0c1312; --surface:#121c1a; --surface-2:#0f1817;
+    --ink:#e7efec; --muted:#94a8a3; --faint:#6f827d;
+    --line:#233230; --line-strong:#2f423f;
+    --copper:#e2985c; --copper-soft:#eaa96f;
+    --signal:#3fd0c9; --signal-soft:#57d9d2;
+    --code-bg:#0e1716;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 30px -14px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:76px}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+
+  /* ---- nav ---- */
+  .topnav{
+    position:sticky;top:0;z-index:50;
+    background:color-mix(in srgb,var(--bg) 82%,transparent);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .topnav .row{display:flex;align-items:center;gap:18px;height:56px}
+  .brand{font-family:var(--disp);font-weight:900;letter-spacing:.02em;font-size:15px;color:var(--ink);white-space:nowrap}
+  .brand b{color:var(--copper)}
+  .navlinks{display:flex;gap:2px;overflow-x:auto;margin-left:auto;scrollbar-width:none}
+  .navlinks::-webkit-scrollbar{display:none}
+  .navlinks a{
+    font-family:var(--mono);font-size:12px;color:var(--muted);
+    text-decoration:none;padding:6px 10px;border-radius:6px;white-space:nowrap;
+  }
+  .navlinks a:hover{color:var(--ink);background:var(--surface-2)}
+  .navlinks a:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+
+  /* ---- hero ---- */
+  header.hero{padding:64px 0 40px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--signal);margin:0 0 18px}
+  h1{
+    font-family:var(--disp);font-weight:900;font-size:clamp(38px,7vw,72px);
+    line-height:.98;letter-spacing:-.02em;margin:0;text-wrap:balance;
+  }
+  h1 .accent{color:var(--copper)}
+  .lede{font-size:clamp(16px,2.2vw,19px);color:var(--muted);max-width:60ch;margin:22px 0 0}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+  .chip{
+    font-family:var(--mono);font-size:12px;color:var(--muted);
+    border:1px solid var(--line-strong);border-radius:999px;padding:5px 12px;
+    display:inline-flex;gap:7px;align-items:center;background:var(--surface)}
+  .chip b{color:var(--ink);font-weight:600}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--signal)}
+
+  .wave{margin-top:34px;width:100%;height:64px;display:block;color:var(--copper)}
+  .wave .sig{stroke:var(--signal)}
+  .wave .ff{fill:var(--surface);stroke:var(--copper)}
+  .wave .lbl{fill:var(--faint);font-family:var(--mono);font-size:9px}
+  @media (prefers-reduced-motion:no-preference){
+    .wave .pulse{stroke-dasharray:6 8;animation:march 2.4s linear infinite}
+  }
+  @keyframes march{to{stroke-dashoffset:-56}}
+
+  /* ---- stats ---- */
+  .stats{
+    display:grid;grid-template-columns:repeat(5,1fr);gap:1px;
+    background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    margin:40px 0;
+  }
+  .stat{background:var(--surface);padding:22px 16px;text-align:center}
+  .stat .n{font-family:var(--disp);font-weight:900;font-size:clamp(30px,5vw,44px);line-height:1;color:var(--copper);font-variant-numeric:tabular-nums}
+  .stat .k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:9px}
+  @media(max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}.stat:last-child{grid-column:1/-1}}
+
+  /* ---- sections ---- */
+  section{padding:52px 0;border-top:1px solid var(--line)}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:26px;flex-wrap:wrap}
+  .sec-num{font-family:var(--mono);font-size:13px;color:var(--signal);font-weight:500}
+  h2{font-family:var(--disp);font-weight:700;font-size:clamp(24px,3.4vw,32px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+  .sec-sub{color:var(--muted);font-size:15px;margin:0;flex-basis:100%;max-width:70ch}
+  h3{font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:30px 0 12px}
+
+  p{margin:0 0 14px}
+  a.inline{color:var(--signal);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--signal) 40%,transparent)}
+  a.inline:hover{border-bottom-color:var(--signal)}
+  code{font-family:var(--mono);font-size:.9em;background:var(--code-bg);padding:.12em .4em;border-radius:5px;color:var(--ink)}
+
+  /* cards */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px;box-shadow:var(--shadow)}
+  .card .t{font-family:var(--disp);font-weight:700;font-size:16px;margin:0 0 6px;display:flex;align-items:center;gap:9px}
+  .card .t .idx{font-family:var(--mono);font-size:11px;color:var(--copper);font-weight:500}
+  .card p{font-size:14px;color:var(--muted);margin:0}
+
+  /* tables */
+  .tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow)}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:480px}
+  th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:500;background:var(--surface-2)}
+  tbody tr:last-child td{border-bottom:none}
+  td.name{font-family:var(--mono);color:var(--copper);white-space:nowrap;font-size:13px}
+  td.name.sig{color:var(--signal)}
+  td.mut{color:var(--muted)}
+  .tag{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:5px;border:1px solid var(--line-strong);color:var(--muted);white-space:nowrap}
+  .tag.on{color:var(--signal);border-color:color-mix(in srgb,var(--signal) 45%,var(--line-strong))}
+  .tag.off{color:var(--faint)}
+
+  /* pipeline */
+  .pipe{display:grid;gap:12px}
+  .pstep{display:grid;grid-template-columns:44px 1fr;gap:16px;align-items:start}
+  .pstep .mark{
+    font-family:var(--mono);font-weight:600;font-size:13px;color:var(--bg);
+    background:var(--copper);border-radius:9px;height:36px;display:grid;place-items:center;
+  }
+  .pstep .mark.v{background:var(--signal)}
+  .pbody{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:14px 16px;box-shadow:var(--shadow)}
+  .pbody .pt{font-family:var(--disp);font-weight:700;font-size:15px;margin:0 0 3px}
+  .pbody .pd{font-size:13.5px;color:var(--muted);margin:0}
+  .pbody .pd code{font-size:12px}
+  .loopnote{
+    grid-column:2;margin-top:-4px;font-family:var(--mono);font-size:11.5px;color:var(--signal);
+    border-left:2px dashed color-mix(in srgb,var(--signal) 50%,transparent);padding:6px 0 6px 14px;
+  }
+
+  /* code block */
+  pre{background:var(--code-bg);border:1px solid var(--line);border-radius:11px;padding:16px;overflow-x:auto;margin:0 0 14px}
+  pre code{background:none;padding:0;font-size:12.5px;line-height:1.7;color:var(--ink)}
+  .cm{color:var(--faint)}
+  .cy{color:var(--signal)}
+
+  footer{border-top:1px solid var(--line);padding:38px 0 60px;color:var(--muted);font-size:13.5px}
+  footer .fmono{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:8px}
+
+  .toplink{font-family:var(--mono);font-size:12px;color:var(--muted);text-decoration:none}
+  .toplink:hover{color:var(--signal)}
+  ::selection{background:color-mix(in srgb,var(--signal) 30%,transparent)}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <div class="wrap row">
+    <span class="brand">Gate<b>Flow</b></span>
+    <div class="navlinks">
+      <a href="#overview">개요</a>
+      <a href="#philosophy">철학</a>
+      <a href="#flow">동작</a>
+      <a href="#agents">에이전트</a>
+      <a href="#skills">스킬</a>
+      <a href="#commands">커맨드</a>
+      <a href="#ip">IP</a>
+      <a href="#boards">보드</a>
+      <a href="#hooks">Hooks</a>
+      <a href="#toolchain">툴체인</a>
+      <a href="#config">설정</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="overview">
+  <div class="wrap">
+    <p class="eyebrow">Claude Code Plugin · 소스 수준 해부</p>
+    <h1>GateFlow<br><span class="accent">플러그인</span> 해부</h1>
+    <p class="lede">자연어로 RTL을 <b>설계·검증·합성·배포</b>하는 하드웨어 개발 플랫폼.
+      SystemVerilog / Verilog / VHDL과 오픈소스 FPGA 툴체인 전체를 감쌉니다.
+      아래는 <code>gateflow</code> v2.5.3을 구성 요소별로 분해한 한국어 레퍼런스입니다.</p>
+    <div class="meta">
+      <span class="chip"><span class="dot"></span>버전 <b>2.5.3</b></span>
+      <span class="chip">마켓플레이스 <b>gateflow</b></span>
+      <span class="chip">설치 ID <b>gateflow@gateflow</b></span>
+      <span class="chip">라이선스 <b>BSL-1.1</b></span>
+      <span class="chip">by <b>codejunkie99</b></span>
+    </div>
+
+    <svg class="wave" viewBox="0 0 560 64" preserveAspectRatio="none" role="img" aria-label="클럭 파형과 플립플롭 모티프">
+      <!-- flip-flop blocks -->
+      <g>
+        <rect class="ff" x="70"  y="8" width="26" height="20" rx="3"/>
+        <rect class="ff" x="210" y="8" width="26" height="20" rx="3"/>
+        <rect class="ff" x="350" y="8" width="26" height="20" rx="3"/>
+        <rect class="ff" x="490" y="8" width="26" height="20" rx="3"/>
+        <text class="lbl" x="76" y="21">FF</text>
+        <text class="lbl" x="216" y="21">FF</text>
+        <text class="lbl" x="356" y="21">FF</text>
+        <text class="lbl" x="496" y="21">FF</text>
+      </g>
+      <!-- data line connecting FFs -->
+      <path d="M0 18 H70 M96 18 H210 M236 18 H350 M376 18 H490 M516 18 H560"
+            fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <!-- clock square wave -->
+      <path class="sig pulse" fill="none" stroke-width="2"
+        d="M0 56 H20 V40 H50 V56 H80 V40 H110 V56 H140 V40 H170 V56 H200 V40 H230 V56 H260 V40 H290 V56 H320 V40 H350 V56 H380 V40 H410 V56 H440 V40 H470 V56 H500 V40 H530 V56 H560"/>
+      <text class="lbl" x="0" y="34">clk ↑</text>
+    </svg>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="stats" aria-label="구성 요소 개수">
+    <div class="stat"><div class="n">20</div><div class="k">Agents</div></div>
+    <div class="stat"><div class="n">27</div><div class="k">Skills</div></div>
+    <div class="stat"><div class="n">21</div><div class="k">Commands</div></div>
+    <div class="stat"><div class="n">8</div><div class="k">IP Blocks</div></div>
+    <div class="stat"><div class="n">4</div><div class="k">Boards</div></div>
+  </div>
+
+  <!-- PHILOSOPHY -->
+  <section id="philosophy">
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <h2>설계 철학</h2>
+      <p class="sec-sub">플러그인 <code>CLAUDE.md</code>에 성문화된 동작 규칙. "동작하는 코드"가 아니라 "동작이 검증된 코드"를 목표로 합니다.</p>
+    </div>
+    <div class="cards">
+      <div class="card"><p class="t"><span class="idx">①</span>듀얼 에이전트 사고</p><p>생성 시 "설계자"와 "검증자" 두 관점을 병행. 만들자마자 스스로 반증한다.</p></div>
+      <div class="card"><p class="t"><span class="idx">②</span>항상 위임</p><p>오케스트레이터는 RTL을 직접 짜지 않고 반드시 전문 에이전트로 라우팅한다.</p></div>
+      <div class="card"><p class="t"><span class="idx">③</span>계획 우선</p><p>생성 전 명확화 질문 → 아키텍처 계획. 코드는 그다음이다.</p></div>
+      <div class="card"><p class="t"><span class="idx">④</span>검증 루프</p><p>lint → sim → formal → synth를 돌려 실패 시 에러를 3계층으로 번역·자동 수정 반복.</p></div>
+      <div class="card"><p class="t"><span class="idx">⑤</span>합성 안전 패턴</p><p><code>always_ff</code>/<code>always_comb</code>, active-low 비동기 리셋, 완전한 case/if로 래치를 원천 차단.</p></div>
+    </div>
+  </section>
+
+  <!-- FLOW -->
+  <section id="flow">
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <h2>동작 원리 — 오케스트레이션</h2>
+      <p class="sec-sub">중심은 <code>gf</code> 오케스트레이터 스킬. RTL 요청이 들어오면 아래 파이프라인을 따릅니다.</p>
+    </div>
+    <div class="pipe">
+      <div class="pstep"><div class="mark">1</div><div class="pbody"><p class="pt">SystemVerilog 작업 감지</p><p class="pd">요청이 하드웨어/RTL 작업인지 먼저 판별.</p></div></div>
+      <div class="pstep"><div class="mark">2</div><div class="pbody"><p class="pt">명확화 질문 <span class="tag">필수</span></p><p class="pd">폭·깊이·리셋 방식·프로토콜·타깃 보드 등을 확정한다.</p></div></div>
+      <div class="pstep"><div class="mark">3</div><div class="pbody"><p class="pt">계획 수립</p><p class="pd"><code>sv-planner</code> / <code>gf-plan</code> — 아키텍처를 먼저 설계.</p></div></div>
+      <div class="pstep"><div class="mark">4</div><div class="pbody"><p class="pt">병렬 빌드</p><p class="pd"><code>sv-orchestrator</code> / <code>gf-build</code> — 설계를 모듈로 분해해 병렬 생성.</p></div></div>
+      <div class="pstep"><div class="mark v">5</div><div class="pbody"><p class="pt">검증 루프</p><p class="pd"><code>gf-lint</code> → <code>gf-sim</code> → <code>gf-formal</code> → <code>gf-synth</code>. 통과할 때까지 반복.</p></div></div>
+      <div class="loopnote">실패 시 → <code>gf-errors</code>가 Verilator/Yosys 에러를 3계층으로 번역 → <code>sv-debug</code> / <code>sv-refactor</code>가 수정 → 재검증</div>
+      <div class="pstep"><div class="mark v">✓</div><div class="pbody"><p class="pt">검증된 RTL 전달</p><p class="pd">lint-clean · 테스트 통과 · 합성 가능 상태로 인계.</p></div></div>
+    </div>
+    <h3>보조 라우팅</h3>
+    <p style="font-size:14px;color:var(--muted);max-width:70ch"><code>gf-router</code>(불명확한 요청 분류)와 <code>gf-expand</code>(옵션·트레이드오프 제시)가 흐름을 보조하며, 에이전트 스폰 시 <b>세션 모델을 상속</b>해 일관성을 유지합니다.</p>
+  </section>
+
+  <!-- AGENTS -->
+  <section id="agents">
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <h2>에이전트 <span style="color:var(--faint);font-family:var(--mono);font-size:16px">/ 20</span></h2>
+      <p class="sec-sub">특정 전문 영역을 담당하는 서브에이전트. <code>agents/*.md</code>의 frontmatter로 정의됩니다.</p>
+    </div>
+
+    <h3>SystemVerilog 코어</h3>
+    <div class="tw"><table>
+      <thead><tr><th>에이전트</th><th>역할</th><th>트리거 예시</th></tr></thead>
+      <tbody>
+        <tr><td class="name">sv-codegen</td><td>RTL 아키텍트 — 합성 가능한 모듈 생성</td><td class="mut">"FIFO 만들어줘", "UART FSM"</td></tr>
+        <tr><td class="name">sv-testbench</td><td>검증 엔지니어 — 테스트벤치·자가검증</td><td class="mut">"ALU 테스트벤치"</td></tr>
+        <tr><td class="name">sv-debug</td><td>디버그 — X값·타이밍·시뮬 실패 진단</td><td class="mut">"출력이 왜 X야"</td></tr>
+        <tr><td class="name">sv-refactor</td><td>코드 품질 — 리팩터·lint 수정·최적화</td><td class="mut">"lint 에러 수정"</td></tr>
+        <tr><td class="name">sv-verification</td><td>검증 방법론 — SVA·커버리지</td><td class="mut">"핸드셰이크 어설션"</td></tr>
+        <tr><td class="name">sv-formal</td><td>Formal — 자연어→SVA, SymbiYosys 증명</td><td class="mut">"오버플로 없음 증명"</td></tr>
+        <tr><td class="name">sv-synth</td><td>합성 최적화 — Yosys 면적/타이밍</td><td class="mut">"합성해줘", "LUT 줄여줘"</td></tr>
+        <tr><td class="name">sv-understanding</td><td>RTL 분석 — 코드/신호 흐름 설명</td><td class="mut">"이 모듈 설명"</td></tr>
+        <tr><td class="name">sv-planner</td><td>계획 — 명확화 후 아키텍처 설계</td><td class="mut">"DMA 설계"</td></tr>
+        <tr><td class="name">sv-developer</td><td>풀스택 — 다중 파일·대규모 기능</td><td class="mut">"메모리 서브시스템"</td></tr>
+        <tr><td class="name">sv-orchestrator</td><td>병렬 빌드 엔진 — 분해 후 병렬 생성</td><td class="mut">"RISC-V CPU 빌드"</td></tr>
+        <tr><td class="name">sv-viz</td><td>터미널 시각화 — 계층·FSM 다이어그램</td><td class="mut">"코드베이스 시각화"</td></tr>
+        <tr><td class="name">sv-tutor</td><td>튜터 — 풀이 리뷰·힌트·개념 교육</td><td class="mut">"SV 가르쳐줘"</td></tr>
+        <tr><td class="name">sv-ip-scanner</td><td>IP 스캐너 — 누락 모듈·CDC 위반 탐지</td><td class="mut">"누락 IP 스캔"</td></tr>
+        <tr><td class="name">sv-pinmap</td><td>핀 배치 — 보드별 제약 파일 생성</td><td class="mut">"PMOD JA에 SPI 매핑"</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>VHDL · PCB · 플러그인 유지보수</h3>
+    <div class="tw"><table>
+      <thead><tr><th>에이전트</th><th>역할</th></tr></thead>
+      <tbody>
+        <tr><td class="name sig">vhdl-codegen</td><td>합성 가능한 VHDL entity/architecture 생성</td></tr>
+        <tr><td class="name sig">vhdl-testbench</td><td>VHDL 테스트벤치·스티뮬러스 생성</td></tr>
+        <tr><td class="name sig">pcb-designer</td><td>KiCad 회로도/PCB 초안 생성 (AI 검증 루프)</td></tr>
+        <tr><td class="name sig">gf-auditor</td><td>플러그인 품질 감사 — 갭/불일치/누락 리포트</td></tr>
+        <tr><td class="name sig">gf-pluginfixer</td><td>감사 결과를 받아 자동으로 갭 수정</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- SKILLS -->
+  <section id="skills">
+    <div class="sec-head">
+      <span class="sec-num">04</span>
+      <h2>스킬 <span style="color:var(--faint);font-family:var(--mono);font-size:16px">/ 27</span></h2>
+      <p class="sec-sub">조건에 맞으면 자동 활성화되는 작업 단위. 일부는 <code>/gf-*</code>로 직접 호출, 일부는 오케스트레이터 내부 전용입니다.</p>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>스킬</th><th>역할</th><th>직접 호출</th></tr></thead>
+      <tbody>
+        <tr><td class="name">gf</td><td>주 오케스트레이터 — 라우팅·검증 반복</td><td><span class="tag on">가능</span></td></tr>
+        <tr><td class="name">gf-router</td><td>요청 분류 후 전문가로 핸드오프</td><td><span class="tag on">가능</span></td></tr>
+        <tr><td class="name">gf-expand</td><td>명확화 질문 + 옵션/트레이드오프 제시</td><td><span class="tag off">내부</span></td></tr>
+        <tr><td class="name">gf-build</td><td>병렬 빌드 오케스트레이터(모듈 분해)</td><td><span class="tag off">내부</span></td></tr>
+        <tr><td class="name">gf-project</td><td><code>.gateflow/project.yaml</code> 설정 관리</td><td><span class="tag off">내부</span></td></tr>
+        <tr><td class="name">gf-plan</td><td>종합 RTL 구현 계획 수립</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-protocols</td><td>프로토콜 스캐폴드(AXI/SPI/UART/I2C/Wishbone)</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-architect</td><td>코드베이스 아키텍처 매핑·문서화</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-ip</td><td>IP 블록 라이브러리 관리</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-ip-detect</td><td>IP/누락 모듈/CDC 자동 탐지</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-lint</td><td>Verilator lint + 구조화 출력</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-sim</td><td>DUT/TB 자동 판별 → 컴파일·시뮬</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-cocotb</td><td>Python(Cocotb) 테스트벤치 생성</td><td><span class="tag on">가능</span></td></tr>
+        <tr><td class="name">gf-formal</td><td>자연어→SVA, SymbiYosys 증명·해설</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-synth</td><td>Yosys 합성 + 면적/타이밍 리포트</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-pnr</td><td>nextpnr Place &amp; Route (iCE40/ECP5/Gowin)</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-pinmap</td><td>보드별 핀 제약(.xdc/.pcf/.lpf/.cst) 생성</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-fusesoc</td><td>FuseSoC <code>.core</code> 생성, Edalize 구동</td><td><span class="tag on">가능</span></td></tr>
+        <tr><td class="name">gf-pcb</td><td>KiCad 회로도/PCB (DRC/ERC/AI 리뷰)</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-errors</td><td>EDA 에러를 3계층 설명으로 번역</td><td><span class="tag off">내부</span></td></tr>
+        <tr><td class="name">gf-summary</td><td>빌드/lint/시뮬 출력 요약</td><td><span class="tag on">가능</span></td></tr>
+        <tr><td class="name">gf-viz</td><td>코드베이스 맵 ASCII/유니코드 시각화</td><td><span class="tag on">가능</span></td></tr>
+        <tr><td class="name">gf-tui</td><td>터미널 콘솔(워크스페이스·툴·릴리스 상태)</td><td><span class="tag on">가능</span></td></tr>
+        <tr><td class="name">gf-learn</td><td>SystemVerilog 학습 모드(연습·리뷰)</td><td><span class="tag on">가능</span></td></tr>
+        <tr><td class="name">gf-learn-ctx</td><td>워크플로 중 마이크로 레슨 삽입</td><td><span class="tag off">내부</span></td></tr>
+        <tr><td class="name">tb-best-practices</td><td>테스트벤치 아키텍처·방법론 가이드</td><td><span class="tag off">—</span></td></tr>
+        <tr><td class="name">gf-release</td><td>플러그인 릴리스 준비·검증</td><td><span class="tag off">—</span></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- COMMANDS -->
+  <section id="commands">
+    <div class="sec-head">
+      <span class="sec-num">05</span>
+      <h2>슬래시 커맨드 <span style="color:var(--faint);font-family:var(--mono);font-size:16px">/ 21</span></h2>
+      <p class="sec-sub"><code>/gf-*</code> 형태로 직접 호출. 대부분 대응 스킬을 실행합니다.</p>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>커맨드</th><th>인자</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td class="name">/gf-doctor</td><td class="mut">—</td><td>툴체인 환경 점검</td></tr>
+        <tr><td class="name">/gf-demo</td><td class="mut">—</td><td>원커맨드 데모: 카운터 생성→lint→시뮬</td></tr>
+        <tr><td class="name">/gf-scan</td><td class="mut">—</td><td>프로젝트 인덱싱</td></tr>
+        <tr><td class="name">/gf-map</td><td class="mut">—</td><td>코드베이스 맵 생성</td></tr>
+        <tr><td class="name">/gf-tui</td><td class="mut">[--snapshot] [--json]</td><td>GateFlow 터미널 콘솔</td></tr>
+        <tr><td class="name">/gf-gen</td><td class="mut">&lt;type&gt; &lt;name&gt;</td><td>스캐폴드 생성</td></tr>
+        <tr><td class="name">/gf-ip</td><td class="mut">add|list|info &lt;block&gt;</td><td>IP 블록 라이브러리 관리</td></tr>
+        <tr><td class="name">/gf-detect</td><td class="mut">[--auto-fill] [--cdc-only]</td><td>누락 IP/스텁/CDC 스캔</td></tr>
+        <tr><td class="name">/gf-lint</td><td class="mut">[files...]</td><td>lint 실행</td></tr>
+        <tr><td class="name">/gf-sim</td><td class="mut">&lt;tb&gt; [dut...]</td><td>시뮬레이션 실행</td></tr>
+        <tr><td class="name">/gf-cocotb</td><td class="mut">&lt;module&gt;</td><td>Cocotb Python TB 생성</td></tr>
+        <tr><td class="name">/gf-formal</td><td class="mut">[files] [--property]</td><td>formal 검증 실행</td></tr>
+        <tr><td class="name">/gf-fix</td><td class="mut">&lt;file&gt;</td><td>lint 자동 수정</td></tr>
+        <tr><td class="name">/gf-fusesoc</td><td class="mut">[--target sim|synth]</td><td>FuseSoC .core 생성</td></tr>
+        <tr><td class="name">/gf-pnr</td><td class="mut">[--target ice40|ecp5|gowin]</td><td>Place &amp; Route</td></tr>
+        <tr><td class="name">/gf-pinmap</td><td class="mut">&lt;board&gt; [peripheral]</td><td>핀 제약 파일 생성</td></tr>
+        <tr><td class="name">/gf-boards</td><td class="mut">[board] [connector]</td><td>지원 보드/핀아웃 조회</td></tr>
+        <tr><td class="name">/gf-flash</td><td class="mut">[bitstream]</td><td>비트스트림을 FPGA에 플래시</td></tr>
+        <tr><td class="name">/gf-pcb</td><td class="mut">[description]</td><td>KiCad 회로도/PCB 초안</td></tr>
+        <tr><td class="name">/gf-audit</td><td class="mut">[--fix] [--category]</td><td>플러그인 품질 감사</td></tr>
+        <tr><td class="name">/gf-release</td><td class="mut">[--version] [--check-only]</td><td>릴리스 준비·검증</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- IP -->
+  <section id="ip">
+    <div class="sec-head">
+      <span class="sec-num">06</span>
+      <h2>IP 블록 라이브러리 <span style="color:var(--faint);font-family:var(--mono);font-size:16px">/ 8</span></h2>
+      <p class="sec-sub">각 블록은 <b>RTL + 테스트벤치 + formal 속성 + 문서 + 메타데이터</b>가 한 세트인 검증된 드롭인 컴포넌트입니다.</p>
+    </div>
+    <div class="cards">
+      <div class="card"><p class="t">fifo_sync</p><p>동기 FIFO (WIDTH/DEPTH 파라미터화)</p></div>
+      <div class="card"><p class="t">fifo_async</p><p>비동기(2클럭) FIFO</p></div>
+      <div class="card"><p class="t">cdc_2ff</p><p>2단 플립플롭 동기화기 (CDC)</p></div>
+      <div class="card"><p class="t">cdc_handshake</p><p>핸드셰이크 기반 CDC</p></div>
+      <div class="card"><p class="t">debouncer</p><p>버튼 디바운서</p></div>
+      <div class="card"><p class="t">spi_master</p><p>SPI 마스터</p></div>
+      <div class="card"><p class="t">uart</p><p>UART (TX/RX)</p></div>
+      <div class="card"><p class="t">axi4lite_slave</p><p>AXI4-Lite 슬레이브</p></div>
+    </div>
+    <h3>메타데이터에 formal 증명까지 명시 — <code>fifo_sync/block.yaml</code></h3>
+    <pre><code><span class="cy">formal_proofs:</span>
+  - p_no_overflow:  <span class="cm">"가득 찼을 때 쓰기를 받지 않음"</span>
+  - p_no_underflow: <span class="cm">"비었을 때 읽기를 허용하지 않음"</span>
+  - p_ptr_range:    <span class="cm">"포인터 차이가 DEPTH를 넘지 않음"</span></code></pre>
+    <p style="font-size:14px;color:var(--muted)"><code>/gf-ip add fifo_sync</code> 로 프로젝트에 바로 추가할 수 있습니다.</p>
+  </section>
+
+  <!-- BOARDS -->
+  <section id="boards">
+    <div class="sec-head">
+      <span class="sec-num">07</span>
+      <h2>보드 데이터베이스 <span style="color:var(--faint);font-family:var(--mono);font-size:16px">/ 4</span></h2>
+      <p class="sec-sub"><code>sv-pinmap</code>이 참조하는 보드 정의 + 핀 제약 파일. 클럭·LED·버튼·PMOD 핀맵까지 포함합니다.</p>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>보드</th><th>FPGA</th><th>제약 포맷</th><th>합성/PNR 타깃</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Arty A7-35T</td><td>Xilinx xc7a35t</td><td class="mut">.xdc</td><td class="mut">synth_xilinx</td></tr>
+        <tr><td class="name">Basys 3</td><td>Xilinx xc7a35t</td><td class="mut">.xdc</td><td class="mut">synth_xilinx</td></tr>
+        <tr><td class="name">iCEBreaker</td><td>Lattice iCE40UP5K</td><td class="mut">.pcf</td><td class="mut">synth_ice40 / nextpnr-ice40</td></tr>
+        <tr><td class="name">Tang Nano 9K</td><td>Gowin GW1NR-9</td><td class="mut">.cst</td><td class="mut">synth_gowin</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- HOOKS -->
+  <section id="hooks">
+    <div class="sec-head">
+      <span class="sec-num">08</span>
+      <h2>Hooks — 자동화 훅</h2>
+      <p class="sec-sub"><code>hooks.json</code>에 정의된 라이프사이클 훅. 스크립트는 <b>결정적</b>(LLM 호출 없음)으로 작성되어 훅 실패 잡음을 방지합니다.</p>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>이벤트</th><th>스크립트</th><th>동작</th></tr></thead>
+      <tbody>
+        <tr><td class="name sig">SessionStart</td><td class="mut">check-dependencies.sh</td><td>툴 의존성 점검 + 웰컴 배너 <span class="tag">자동 설치 안 함</span></td></tr>
+        <tr><td class="name sig">SessionStart</td><td class="mut">session-tracker.py</td><td>세션 추적</td></tr>
+        <tr><td class="name sig">UserPromptSubmit</td><td class="mut">…sv-nudge.py</td><td>SV 관련 프롬프트에 넛지(차단 안 함)</td></tr>
+        <tr><td class="name sig">PreToolUse · Bash</td><td class="mut">…bash-guard.py</td><td>SV 소스 삭제·덮어쓰기 의심 명령에 확인 요청</td></tr>
+        <tr><td class="name sig">PostToolUse · Write|Edit</td><td class="mut">…lint-nudge.py</td><td>SV 파일 수정 후 lint 실행 넛지</td></tr>
+        <tr><td class="name sig">Stop</td><td class="mut">stop-hook.sh</td><td>세션 종료 정리</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:13.5px;color:var(--muted);margin-top:14px">⚠ SessionStart의 의존성 체크는 <b>자동 설치를 하지 않고 안내만</b> 합니다 — 실제 툴 설치는 별도로 해야 합니다.</p>
+  </section>
+
+  <!-- TOOLCHAIN -->
+  <section id="toolchain">
+    <div class="sec-head">
+      <span class="sec-num">09</span>
+      <h2>툴체인 통합</h2>
+      <p class="sec-sub">오픈소스 EDA 툴을 감싸 자연어로 구동합니다. 단계 → 툴 → 담당 스킬 매핑.</p>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>단계</th><th>툴</th><th>담당</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Lint</td><td>Verilator · Verible</td><td class="mut">gf-lint · /gf-fix</td></tr>
+        <tr><td class="name">시뮬레이션</td><td>Verilator · Icarus · Cocotb</td><td class="mut">gf-sim · gf-cocotb</td></tr>
+        <tr><td class="name">Formal</td><td>SymbiYosys + z3/boolector</td><td class="mut">gf-formal</td></tr>
+        <tr><td class="name">합성</td><td>Yosys</td><td class="mut">gf-synth</td></tr>
+        <tr><td class="name">Place &amp; Route</td><td>nextpnr (iCE40/ECP5/Gowin)</td><td class="mut">gf-pnr</td></tr>
+        <tr><td class="name">비트스트림</td><td>icestorm(icepack) · trellis</td><td class="mut">(PNR 후속)</td></tr>
+        <tr><td class="name">플래시</td><td>openFPGALoader</td><td class="mut">/gf-flash</td></tr>
+        <tr><td class="name">VHDL</td><td>GHDL</td><td class="mut">vhdl-codegen · vhdl-testbench</td></tr>
+        <tr><td class="name">빌드 관리</td><td>FuseSoC + Edalize</td><td class="mut">gf-fusesoc</td></tr>
+        <tr><td class="name">파형</td><td>GTKWave</td><td class="mut">(.vcd 산출물)</td></tr>
+        <tr><td class="name">PCB</td><td>KiCad</td><td class="mut">gf-pcb</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- CONFIG -->
+  <section id="config">
+    <div class="sec-head">
+      <span class="sec-num">10</span>
+      <h2>설정 &amp; gateflow-ex 활용</h2>
+      <p class="sec-sub">이 저장소(<code>gateflow-ex</code>)는 마켓플레이스를 등록하고 플러그인을 활성화해, 열자마자 GateFlow가 자동 로드됩니다.</p>
+    </div>
+    <h3>.claude/settings.json — 저장소 단위 활성화</h3>
+    <pre><code>{
+  <span class="cy">"extraKnownMarketplaces"</span>: {
+    <span class="cy">"gateflow"</span>: { <span class="cy">"source"</span>: { <span class="cy">"source"</span>: <span class="cm">"github"</span>, <span class="cy">"repo"</span>: <span class="cm">"codejunkie99/Gateflow-Plugin"</span> } }
+  },
+  <span class="cy">"enabledPlugins"</span>: { <span class="cy">"gateflow@gateflow"</span>: <span class="cm">true</span> }
+}</code></pre>
+    <h3>바로 해볼 수 있는 것</h3>
+    <pre><code><span class="cm"># Claude Code 안에서</span>
+/gf-doctor                 <span class="cm"># 툴체인 점검</span>
+/gf-sim tb/tb_counter.sv   <span class="cm"># 예제 시뮬레이션</span>
+<span class="cm">"FIFO 만들고 테스트해줘"</span>     <span class="cm"># gf 오케스트레이터가 생성→검증</span>
+
+<span class="cm"># 로컬 Makefile</span>
+make lint    <span class="cm"># verilator --lint-only -Wall</span>
+make sim     <span class="cm"># 빌드 + 자가검증 TB → "6 passed, 0 failed"</span></code></pre>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>GateFlow는 <b>20 에이전트 · 27 스킬 · 21 커맨드 · 8 IP · 4 보드</b>로 구성된 자연어 하드웨어 개발 플랫폼입니다.
+      핵심은 <code>gf</code> 오케스트레이터가 요청을 전문 에이전트로 라우팅하고 lint→sim→formal→synth 루프를 자동으로 돌려 <b>검증된 RTL</b>을 만든다는 점입니다.</div>
+    <div class="fmono">gateflow v2.5.3 · BSL-1.1 · 소스 분석 기반 · <a class="toplink" href="#overview">↑ 맨 위로</a></div>
+  </div>
+</footer>
+
+</body>
+</html>

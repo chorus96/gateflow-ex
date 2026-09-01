@@ -7,6 +7,13 @@ Claude Code — AI-powered SystemVerilog development: **design → lint → simu
 The reference design is a parameterized up-counter with an enable and an
 active-low asynchronous reset, plus a self-checking testbench.
 
+## 플러그인 문서 (한국어)
+
+GateFlow 플러그인을 소스 수준에서 분석한 한국어 레퍼런스가 있습니다:
+
+- [`plugin.md`](plugin.md) — 에이전트·스킬·커맨드·IP·보드 전체 정리 (Markdown)
+- [`docs/plugin.html`](docs/plugin.html) — 같은 내용의 시각적 레퍼런스 페이지 (브라우저에서 열기)
+
 ## Getting started
 
 ### 1. Open in Claude Code
