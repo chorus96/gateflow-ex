@@ -284,6 +284,23 @@
       <div class="pstep"><div class="mark v">④</div><div class="pbody"><p class="pt">결과 집계</p><p class="pd">모든 에이전트 반환까지 대기 후 <code>---GATEFLOW-RETURN---</code> 블록(<code>STATUS</code>/<code>FILES_CREATED</code>)을 파싱해 취합. 블록이 없으면 <code>ERROR</code> 처리, 파일 존재를 <code>ls</code>로 검증.</p></div></div>
       <div class="pstep"><div class="mark v">⑤</div><div class="pbody"><p class="pt">Phase Gate + 실패분만 재스폰</p><p class="pd">각 단계는 통과 조건을 만족해야 다음으로. 성공분은 유지하고 <b>실패한 컴포넌트만 재스폰</b>(모듈당 최대 2회).</p></div></div>
     </div>
+
+    <div style="border:1px solid var(--line);border-left:3px solid var(--signal);border-radius:11px;background:var(--surface-2);padding:16px 18px;margin-top:20px">
+      <p style="font-family:var(--disp);font-weight:700;font-size:15px;margin:0 0 8px">자족적 프롬프트(self-contained prompt)란?</p>
+      <p style="font-size:13.5px;color:var(--muted);margin:0 0 12px;max-width:74ch"><code>Task</code>로 스폰된 에이전트는 <b>완전히 새로운 독립 컨텍스트</b>에서 시작합니다. 사용자·오케스트레이터의 대화, 명확화 답변, 앞서 정한 설계 결정 — <b>아무것도 자동 전달되지 않고</b> 아는 것은 오직 <code>prompt</code> 뿐입니다. 그래서 프롬프트가 <b>그 하나만으로 작업을 완수할 만큼 완결</b>돼야 하며, 빠진 정보가 있으면 되물을 수 없어 추측(→오설계)하거나 실패합니다.</p>
+      <div class="tw"><table style="min-width:420px">
+        <thead><tr><th>섹션</th><th>담는 정보</th><th>없으면</th></tr></thead>
+        <tbody>
+          <tr><td class="name sig">Component</td><td>무엇을 만드는지(이름·정체)</td><td class="mut">엉뚱한 모듈 생성</td></tr>
+          <tr><td class="name sig">Specification</td><td>동작·기능 요구(확정된 폭·깊이·리셋)</td><td class="mut">스펙 추측 → 오설계</td></tr>
+          <tr><td class="name sig">Interface</td><td>포트·파라미터·프로토콜</td><td class="mut">상위 모듈과 배선 불일치</td></tr>
+          <tr><td class="name sig">Constraints</td><td>lint-clean, 네이밍 규칙, 공용 타입</td><td class="mut">스타일 위반 → 재작업</td></tr>
+          <tr><td class="name sig">Output</td><td>정확한 파일 경로</td><td class="mut">산출물 미검출/오배치</td></tr>
+        </tbody>
+      </table></div>
+      <p style="font-size:13px;color:var(--muted);margin:12px 0 0;max-width:74ch"><b style="color:var(--ink)">명확화 질문을 스폰 전에 반드시 하는 이유</b>가 이것 — 그 답변이 Specification·Interface를 채운다. 병렬 스폰 시에도 각 프롬프트가 자족적이어야 에이전트들이 서로 맥락을 몰라도 인터페이스가 맞물리고, Output 경로가 명확해야 <code>ls</code>로 산출물을 검증해 집계로 이어진다.</p>
+    </div>
+
     <div class="tw" style="margin-top:18px"><table>
       <thead><tr><th>집계 분류</th><th>조건</th><th>조치</th></tr></thead>
       <tbody>
