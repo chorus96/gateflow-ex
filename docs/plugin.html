@@ -708,6 +708,37 @@
   },
   <span class="cy">"enabledPlugins"</span>: { <span class="cy">"gateflow@gateflow"</span>: <span class="cm">true</span> }
 }</code></pre>
+
+    <h3>Bitbucket(GitHub 외 git 호스트)에서 사용</h3>
+    <p style="font-size:14px;color:var(--muted);max-width:74ch;margin-bottom:14px"><b>플러그인 내용은 동일하고 "설치 소스"만 바뀝니다.</b> GitHub 대신 Bitbucket 사본을 쓰려면 소스를 git URL로 지정합니다.</p>
+    <p style="font-family:var(--mono);font-size:12px;color:var(--faint);margin:0 0 6px">방법 1 — CLI로 마켓플레이스 추가 (권장, 호스트 무관)</p>
+    <pre><code>claude plugin marketplace add https://bitbucket.org/&lt;ws&gt;/gateflow-plugin.git
+<span class="cm"># 또는 SSH: git@bitbucket.org:&lt;ws&gt;/gateflow-plugin.git</span>
+claude plugin install gateflow@gateflow</code></pre>
+    <p style="font-family:var(--mono);font-size:12px;color:var(--faint);margin:0 0 6px">방법 2 — settings.json에 git 소스로 선언 (저장소 단위 자동 활성화)</p>
+    <pre><code>{
+  <span class="cy">"extraKnownMarketplaces"</span>: {
+    <span class="cy">"gateflow"</span>: { <span class="cy">"source"</span>: { <span class="cy">"source"</span>: <span class="cm">"git"</span>, <span class="cy">"url"</span>: <span class="cm">"https://bitbucket.org/&lt;ws&gt;/gateflow-plugin.git"</span> } }
+  },
+  <span class="cy">"enabledPlugins"</span>: { <span class="cy">"gateflow@gateflow"</span>: <span class="cm">true</span> }
+}</code></pre>
+    <div style="border:1px solid var(--line);border-left:3px solid var(--copper);border-radius:11px;background:var(--surface-2);padding:12px 16px;margin-bottom:14px">
+      <p style="font-size:13px;color:var(--muted);margin:0">⚠ <code>source: git</code>(임의 URL) 스키마는 GitHub 단축형(<code>source: github, repo: …</code>)과 다르고 CLI 버전에 따라 필드가 다를 수 있습니다 — <b>방법 1(CLI)로 먼저 확인</b> 후 settings로 옮기길 권장.</p>
+    </div>
+    <p style="font-family:var(--mono);font-size:12px;color:var(--faint);margin:0 0 6px">방법 3 — 로컬 클론 + 경로 지정 (가장 확실, 호스트 완전 무관)</p>
+    <pre><code>git clone https://bitbucket.org/&lt;ws&gt;/gateflow-plugin.git
+claude --plugin-dir ./gateflow-plugin/plugins/gateflow   <span class="cm"># 일회성</span>
+<span class="cm"># 영구: settings.json 의 "plugins": ["/abs/path/gateflow-plugin/plugins/gateflow"]</span></code></pre>
+    <div class="tw" style="margin-bottom:8px"><table style="min-width:440px">
+      <thead><tr><th>방법</th><th>장점</th><th>적합</th></tr></thead>
+      <tbody>
+        <tr><td class="name">1. CLI marketplace add</td><td class="mut">간단, marketplace update로 갱신</td><td class="mut">개인/일반</td></tr>
+        <tr><td class="name">2. settings.json git 소스</td><td class="mut">저장소 열면 자동 활성화·팀 공유</td><td class="mut">프로젝트</td></tr>
+        <tr><td class="name">3. 로컬 클론 + 경로</td><td class="mut">스키마 무관·오프라인·확실</td><td class="mut">폐쇄망·확실성</td></tr>
+      </tbody>
+    </table></div>
+    <p style="font-size:13px;color:var(--muted);max-width:74ch"><b>private 저장소 인증</b> — Bitbucket 사설 저장소는 클론 시 인증 필요(HTTPS + App Password/Access token, 또는 SSH 키). git이 처리하므로 <b>먼저 <code>git clone</code>이 되는지</b> 확인하면 세 방법 모두 동작합니다.</p>
+
     <h3>바로 해볼 수 있는 것</h3>
     <pre><code><span class="cm"># Claude Code 안에서</span>
 /gf-doctor                 <span class="cm"># 툴체인 점검</span>

@@ -825,6 +825,60 @@ claude --plugin-dir ./Gateflow-Plugin/plugins/gateflow
 }
 ```
 
+### Bitbucket(또는 GitHub 외 git 호스트)에서 사용
+
+**플러그인 내용은 동일하고 "설치 소스"만 바뀝니다.** GitHub 대신 Bitbucket 사본을
+쓰려면 소스를 git URL로 지정합니다.
+
+**방법 1 — CLI로 마켓플레이스 추가 (권장, 호스트 무관).** `marketplace add`는 임의의
+git URL을 받습니다.
+
+```bash
+# HTTPS 또는 SSH
+claude plugin marketplace add https://bitbucket.org/<워크스페이스>/gateflow-plugin.git
+claude plugin marketplace add git@bitbucket.org:<워크스페이스>/gateflow-plugin.git
+# 등록 후 설치
+claude plugin install gateflow@gateflow
+```
+
+**방법 2 — `.claude/settings.json`에 git 소스로 선언.** 저장소 단위 자동 활성화:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "gateflow": {
+      "source": { "source": "git", "url": "https://bitbucket.org/<워크스페이스>/gateflow-plugin.git" }
+    }
+  },
+  "enabledPlugins": { "gateflow@gateflow": true }
+}
+```
+
+> ⚠️ `source: git`(임의 URL) 스키마는 GitHub 단축형(`source: github, repo: …`)과
+> 다릅니다. CLI 버전에 따라 필드가 다를 수 있으니 **방법 1로 먼저 확인** 후 옮기길 권장.
+
+**방법 3 — 로컬 클론 + 경로 지정 (가장 확실, 호스트 완전 무관).** git 소스 스키마
+걱정 없이 무조건 되는 방법:
+
+```bash
+git clone https://bitbucket.org/<워크스페이스>/gateflow-plugin.git
+# (A) 일회성 실행
+claude --plugin-dir ./gateflow-plugin/plugins/gateflow
+# (B) 영구 등록은 settings.json 의 plugins 배열에 절대경로 추가
+#     { "plugins": ["/abs/path/gateflow-plugin/plugins/gateflow"] }
+```
+
+**private 저장소 인증** — Bitbucket 사설 저장소는 클론 시 인증이 필요합니다. git이
+처리하므로 **먼저 `git clone`이 되는지** 확인하세요: HTTPS + App Password /
+Repository access token, 또는 SSH 키 등록. `git clone`이 성공하면 위 세 방법 모두
+동작합니다.
+
+| 방법 | 장점 | 적합 |
+|------|------|------|
+| 1. CLI marketplace add | 간단, `marketplace update`로 갱신 | 개인/일반 |
+| 2. settings.json git 소스 | 저장소 열면 자동 활성화, 팀 공유 | 프로젝트 |
+| 3. 로컬 클론 + 경로 | 스키마 무관·오프라인·확실 | 폐쇄망·확실성 |
+
 ### 프로젝트별 설정 (`.claude/gateflow.local.md`)
 
 ```yaml
