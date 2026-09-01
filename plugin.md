@@ -158,6 +158,77 @@ GateFlow의 중심은 **`gf` 오케스트레이터 스킬**입니다. 사용자�
 내부적으로 `gf-router`(불명확한 요청 분류)와 `gf-expand`(옵션·트레이드오프 제시)가
 보조하며, 에이전트 스폰 시 **세션 모델을 상속**해 일관성을 유지합니다.
 
+### 에이전트 스폰(Agent Spawning) 상세
+
+오케스트레이터는 RTL 작업을 직접 하지 않고 `Task` 툴로 전문 서브에이전트를
+**실행(spawn)** 시킵니다. 각 에이전트는 독립 컨텍스트에서 돌고 결과를 반환합니다.
+
+**① 기본 패턴** — `Task` 툴에 대상 에이전트와 자족적 프롬프트를 전달:
+
+```
+Use Task tool:
+  subagent_type: "gateflow:sv-codegen"     # gateflow: 접두사 + 에이전트 이름
+  prompt: |
+    ## Component: [이름]
+    ## Specification  [상세 요구사항]
+    ## Interface      [포트/파라미터/프로토콜]
+    ## Constraints    - lint-clean, 네이밍 규칙 준수
+    ## Output         Write to: rtl/<file>.sv
+```
+
+서브에이전트는 부모 대화 맥락을 자동으로 갖지 못하므로 **스펙·인터페이스·제약·파일
+경로를 프롬프트에 명시**해야 합니다.
+
+**② 세션 모델 상속** — 스폰된 에이전트는 부모 세션과 **동일한 모델**로 실행되어
+오케스트레이터와 품질·일관성을 맞춥니다(`gf-lint`/`gf-sim` 같은 순수 툴 실행은 모델 불필요).
+
+**③ 단일 메시지 · 다중 Task 병렬 스폰** — 의존성이 없는 모듈은 한 번에 병렬 생성:
+
+```
+단일 응답 안에서:
+  Task 1: sv-codegen → ALU
+  Task 2: sv-codegen → RegFile
+  Task 3: sv-codegen → ImmGen   (동시 실행)
+```
+
+이것이 `sv-orchestrator`의 기본 동작으로, 설계를 의존성에 따라 단계(Phase)로 분해합니다:
+
+```
+Phase 1: 독립 리프 모듈   → 병렬 스폰
+Phase 2: 의존 모듈        → 병렬 스폰 (Phase 1 이후)
+Phase 4: 테스트벤치·검증   → 모듈별 병렬/순차
+```
+
+**④ 결과 집계** — 모든 에이전트가 반환할 때까지 대기 후, 각 에이전트의 구조화 블록을
+파싱해 취합합니다:
+
+```
+---GATEFLOW-RETURN---
+STATUS: complete
+FILES_CREATED: rtl/alu.sv
+```
+
+| 분류 | 조건 | 조치 |
+|------|------|------|
+| **ALL_PASS** | 전부 `complete` | 다음 단계 진행 |
+| **PARTIAL_FAIL** | 일부만 실패 | 성공분 유지, **실패분만 재스폰**(모듈당 최대 2회) |
+| **ALL_FAIL** | 전부 실패 | 사용자에게 질문(스펙/환경 문제) |
+
+- `GATEFLOW-RETURN` 블록이 없으면 → `STATUS: ERROR`로 처리
+- 파일이 실제로 디스크에 있는지 `ls`로 검증 후 진행
+
+**⑤ Phase Gate** — 각 단계는 통과 조건을 만족해야 다음으로 넘어가고, 실패한 부분만
+재스폰합니다:
+
+| 단계 | 통과 조건 | 실패 시 |
+|------|-----------|---------|
+| Phase 1 (생성) | 전 컴포넌트 `complete` + 파일 존재 | 실패분 재스폰 |
+| Phase 2 (Lint) | `gf-lint` = PASS | 파일별 `sv-refactor` 스폰 후 재-lint |
+| Phase 5 (Sim) | `gf-sim` = PASS | `sv-debug` → `sv-refactor` 스폰 후 재-sim |
+
+> **핵심**: ① 위임 · ② 자족적 프롬프트 · ③ 세션 모델 상속 · ④ 단일 메시지 병렬 스폰 ·
+> ⑤ 구조화 반환 블록 집계 · ⑥ 실패분만 재스폰 — 관문형(Phase Gate) 파이프라인.
+
 ---
 
 ## 5. 에이전트 (20개)
