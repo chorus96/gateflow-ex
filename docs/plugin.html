@@ -451,6 +451,22 @@
     </table></div>
     <p style="font-size:13px;color:var(--muted);margin-top:12px"><b>기호</b> — <code>◆</code>최상위 <code>■</code>중간 <code>□</code>리프 · <code>→←↔</code>포트 방향 · <code>↻</code>FSM · <code>◉</code>리셋 · <code>✓</code>통과 <code>⚠</code>경고. <b>대화형</b> — 모든 뷰가 번호 메뉴(<code>[1]</code>계층 <code>[2]</code>FSM <code>[3]</code>상세 · <code>H</code>홈 · <code>↑</code>부모)와 자유 입력("show uart_tx", "trace &lt;signal&gt;")으로 끝나 뷰 사이를 오간다.</p>
 
+    <h3>자세히 보기 — sv-understanding (RTL 분석가)</h3>
+    <p style="font-size:14px;color:var(--muted);max-width:74ch;margin-bottom:14px">기존 RTL을 <b>읽고 "무엇을·왜" 하는지 산문으로 해설</b>하는 읽기 전용 분석가(<code>Read</code>/<code>Glob</code>/<code>Grep</code>/<code>Bash</code>/<b><code>WebSearch</code></b> — 표준·개념을 웹에서 찾아 보강). 코드를 만들거나 고치지 않습니다. 핵심 원칙은 <b>WHAT이 아니라 WHY</b>.</p>
+    <div style="border:1px solid var(--line);border-left:3px solid var(--signal);border-radius:11px;background:var(--surface-2);padding:12px 16px;margin-bottom:14px">
+      <p style="font-size:13.5px;color:var(--muted);margin:0"><b style="color:var(--ink)">특별한 위치 — 보조 에이전트</b> — 라우팅 표에서 거의 모든 작업의 <b>Secondary(병렬 보조)</b>로 등장. codegen/debug/refactor 시 주 작업자와 함께 스폰되어 "이 코드가 어떻게 동작하는지" 맥락을 제공합니다(단독 "설명" 요청 + 다른 에이전트의 이해 파트너).</p>
+    </div>
+    <p style="font-size:14px;color:var(--muted);max-width:74ch"><b>depth/focus</b>로 설명 조절 — <code>depth: overview/detailed</code>(블록도/라인별), <code>focus: fsm</code>(상태·전이)·<code>datapath</code>(신호 흐름)·<code>timing</code>(파이프라인·지연)·<code>interface</code>(포트·프로토콜). <b>맵 활용</b> — 전역 질문("X가 Y에 어떻게 연결")은 <code>.gateflow/map/CODEBASE.md</code> 확인(없으면 "Run /gf-architect first"), 단일 파일은 맵 없이 바로 설명.</p>
+    <div class="tw" style="margin-top:14px"><table style="min-width:460px">
+      <thead><tr><th></th><th>sv-understanding</th><th>sv-viz</th></tr></thead>
+      <tbody>
+        <tr><td class="name">입력</td><td class="mut">실제 RTL 소스(맵은 보조)</td><td class="mut">.gateflow/map/ 데이터</td></tr>
+        <tr><td class="name">출력</td><td class="mut">산문 해설 + 부분 다이어그램</td><td class="mut">ASCII/유니코드 다이어그램</td></tr>
+        <tr><td class="name">초점</td><td class="mut">"왜 이렇게 동작하나"(추론)</td><td class="mut">"구조가 어떻게 생겼나"(렌더)</td></tr>
+        <tr><td class="name">맵</td><td class="mut">전역 질문에만</td><td class="mut">항상(전제)</td></tr>
+      </tbody>
+    </table></div>
+
     <h3>자세히 보기 — sv-tutor (SystemVerilog 튜터)</h3>
     <p style="font-size:14px;color:var(--muted);max-width:74ch;margin-bottom:14px">학생 풀이를 채점·리뷰하고 <b>답을 직접 주지 않으면서</b> 힌트로 유도하며 개념을 가르치는 교육 에이전트(<code>Read</code>/<code>Bash</code>/<code>Grep</code>/<code>Glob</code>). 학습 모드 스킬 <code>gf-learn</code>에서 라우팅됩니다. 핵심 철학 <i>"정답을 그대로 주지 않는다"</i> 덕에, 그냥 고쳐주는 <code>sv-refactor</code>·만들어주는 <code>sv-codegen</code>과 결정적으로 다릅니다.</p>
     <div class="cards" style="margin-bottom:16px">
