@@ -863,6 +863,29 @@ GateFlow는 오픈소스 EDA 툴을 감싸 자연어로 구동합니다.
 
 `integrations/` 폴더에는 OpenLane, F4PGA, OpenFPGA, OpenClaw 등과의 연동 문서가 있습니다.
 
+### 지원 시뮬레이터 (그리고 미지원)
+
+검증 스택은 **오픈소스 툴 중심**입니다. 상용 시뮬레이터는 1급 지원이 아닙니다.
+
+| 시뮬레이터 | 지원 수준 | 위치 |
+|-----------|-----------|------|
+| **Verilator** | ✅ 주력 (lint·시뮬) | `gf-sim`, `gf-lint` |
+| **Icarus (iverilog)** | ✅ 대체 시뮬레이터 | `gf-sim`, project 설정 |
+| **cocotb** | ✅ Python 테스트벤치 | `gf-cocotb` |
+| **GHDL** | ✅ VHDL | `vhdl-codegen`/`vhdl-testbench` |
+| **VCS** (Synopsys) | ⚠️ 부분 — 설정 선택지·파형 참조만 | `project.yaml`의 `tool` 필드, 파형 포맷 표 |
+| **Questa** (Siemens) | ⚠️ 감지 키워드로만 언급 | 플러그인 `CLAUDE.md` |
+| **Xcelium** (Cadence) | ❌ **미지원** | 소스에 참조 없음 |
+
+**Cadence Xcelium은 지원하지 않습니다.** 플러그인 전체에 `xcelium`/`xrun`/`cadence`/
+`incisive`/`ncsim` 참조가 0건입니다 — 구동 커맨드·스킬·예제·설정이 없습니다.
+
+**간접 경로(우회)** — `gf-fusesoc`가 생성한 FuseSoC `.core` 파일은 **Edalize 백엔드**로
+빌드됩니다(스킬이 명시한 백엔드: Vivado·Quartus·오픈소스 툴). Edalize 자체는 상위에서
+Xcelium 백엔드를 지원하므로, 사용자가 `.core`/Edalize 설정을 **직접** 작성하면 Xcelium으로
+돌리는 것은 원리상 가능합니다. 단 GateFlow에는 Xcelium용 `default_tool`·예제·문서가 없어
+1급 지원이 아니며 전부 수동 구성이 필요합니다.
+
 ---
 
 ## 12. 설정 방법

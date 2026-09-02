@@ -724,6 +724,25 @@
         <tr><td class="name">PCB</td><td>KiCad</td><td class="mut">gf-pcb</td></tr>
       </tbody>
     </table></div>
+
+    <h3>지원 시뮬레이터 (그리고 미지원)</h3>
+    <p style="font-size:14px;color:var(--muted);max-width:74ch;margin-bottom:14px">검증 스택은 <b>오픈소스 툴 중심</b>. 상용 시뮬레이터는 1급 지원이 아닙니다.</p>
+    <div class="tw"><table style="min-width:460px">
+      <thead><tr><th>시뮬레이터</th><th>지원 수준</th><th>위치</th></tr></thead>
+      <tbody>
+        <tr><td class="name">Verilator</td><td>✅ 주력 (lint·시뮬)</td><td class="mut">gf-sim · gf-lint</td></tr>
+        <tr><td class="name">Icarus (iverilog)</td><td>✅ 대체 시뮬레이터</td><td class="mut">gf-sim · project 설정</td></tr>
+        <tr><td class="name">cocotb</td><td>✅ Python 테스트벤치</td><td class="mut">gf-cocotb</td></tr>
+        <tr><td class="name">GHDL</td><td>✅ VHDL</td><td class="mut">vhdl-codegen/testbench</td></tr>
+        <tr><td class="name sig">VCS (Synopsys)</td><td>⚠️ 부분 — 설정 선택지·파형 참조만</td><td class="mut">project.yaml tool · 파형 표</td></tr>
+        <tr><td class="name sig">Questa (Siemens)</td><td>⚠️ 감지 키워드로만 언급</td><td class="mut">플러그인 CLAUDE.md</td></tr>
+        <tr><td class="name sig">Xcelium (Cadence)</td><td><b style="color:var(--copper)">❌ 미지원</b></td><td class="mut">소스에 참조 없음</td></tr>
+      </tbody>
+    </table></div>
+    <div style="border:1px solid var(--line);border-left:3px solid var(--copper);border-radius:11px;background:var(--surface-2);padding:14px 16px;margin-top:14px">
+      <p style="font-size:13.5px;color:var(--muted);margin:0 0 8px"><b style="color:var(--ink)">Cadence Xcelium은 지원하지 않습니다.</b> 플러그인 전체에 <code>xcelium</code>/<code>xrun</code>/<code>cadence</code>/<code>incisive</code>/<code>ncsim</code> 참조가 0건 — 구동 커맨드·스킬·예제·설정이 없습니다.</p>
+      <p style="font-size:13px;color:var(--muted);margin:0"><b>간접 경로</b> — <code>gf-fusesoc</code>가 만든 FuseSoC <code>.core</code>는 Edalize 백엔드(Vivado·Quartus·오픈소스)로 빌드됩니다. Edalize 자체는 Xcelium 백엔드를 지원하므로 사용자가 <code>.core</code>/Edalize 설정을 <b>직접</b> 작성하면 원리상 가능하지만, GateFlow에는 Xcelium용 default_tool·예제·문서가 없어 전부 수동 구성이 필요합니다.</p>
+    </div>
   </section>
 
   <!-- CONFIG -->
